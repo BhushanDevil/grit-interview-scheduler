@@ -106,7 +106,7 @@
           <div class="relative">
             <select id="user-select" onchange="onUserSelectChange(this.value)" class="text-xs font-medium bg-transparent border-none text-slate-700 cursor-pointer pr-6 focus:ring-0 focus:outline-none py-1">
               <optgroup label="Students (8 Candidates)">
-                <option value="5">Alex Rivera (Student)</option>
+                <option value="5" selected>Alex Rivera (Student)</option>
                 <option value="6">Bianca Chen (Student)</option>
                 <option value="7">Devon Brooks (Student)</option>
                 <option value="8">Elena Rostova (Student)</option>
@@ -971,7 +971,7 @@
   <script>
     // State management
     let currentRole = 'Student';
-    let currentStudentId = 3;      // Default: Alex Rivera
+    let currentStudentId = 5;      // Default: Alex Rivera
     let currentInterviewerId = 2;  // Default: Dr. Marcus Rivera
     let currentLockedSlotId = null;
     let holdTimerInterval = null;
@@ -1837,20 +1837,36 @@
 
     async function simulateQuickBooking() {
       try {
-        const slotsRes = await fetch('/api/slots?status=Available');
-        const slotsData = await slotsRes.json();
-        if (!slotsData.slots || slotsData.slots.length === 0) {
+        const mySlotsRes = await fetch(`/api/slots?interviewer_id=${currentInterviewerId}`);
+        const mySlotsData = await mySlotsRes.json();
+        let availableSlots = (mySlotsData.slots || []).filter(s => s.status === 'Available');
+
+        if (availableSlots.length === 0) {
+          const allSlotsRes = await fetch('/api/slots?status=Available');
+          const allSlotsData = await allSlotsRes.json();
+          availableSlots = allSlotsData.slots || [];
+        }
+
+        if (availableSlots.length === 0) {
           alert("No available slots to book. Please add a slot first in Section 1.");
           return;
         }
 
-        const slotId = slotsData.slots[0].id;
+        const slotId = availableSlots[0].id;
+        let targetStudentId = 5; // Default: Alex Rivera
+        if (cachedInterviewerData && cachedInterviewerData.cohort) {
+          const unbooked = cachedInterviewerData.cohort.find(s => s.status === 'Eligible');
+          if (unbooked) {
+            targetStudentId = unbooked.student_id;
+          }
+        }
+
         const res = await fetch('/api/bookings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             slot_id: slotId,
-            student_id: 3, // Alex Rivera
+            student_id: targetStudentId,
             track_name: 'AI Engineering Track'
           })
         });

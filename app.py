@@ -87,7 +87,7 @@ def api_current_user():
         if user_id:
             user = get_user_by_id(conn, user_id)
         
-        # Default to first Student (Alex Rivera, ID: 3)
+        # Default to first Student (Alex Rivera, ID: 5)
         if not user:
             student = conn.execute("SELECT * FROM Users WHERE role = 'Student' ORDER BY id ASC LIMIT 1").fetchone()
             if student:

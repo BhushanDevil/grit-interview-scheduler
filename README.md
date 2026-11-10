@@ -68,6 +68,9 @@ The application provides three role-based views accessible via the top navigatio
     * `Pass` → Updates `Track_Eligibility.status` to **`Passed`**.
     * `Fail` → Updates `Track_Eligibility.status` to **`Failed`**.
     * `Retake` → Crucially resets `Track_Eligibility.status` back to **`Eligible`**.
+* **Section 3: Eligible Students Cohort (Unbooked vs Booked):**
+  * Dedicated cohort tracker showing the interview team which eligible students have booked and which haven't.
+  * Instant filter pills: *All Students*, *Unbooked (Awaiting Slot)*, and *Booked (Scheduled)*.
 
 ---
 
@@ -152,7 +155,7 @@ python app.py
 
 ---
 
-## 🧪 Automated Test Suite (23/23 Tests Passing)
+## 🧪 Automated Test Suite (24/24 Tests Passing)
 
 ```bash
 python test_db.py && python test_booking_flow.py && python test_interviewer_outcomes.py && python test_admin_and_dynamic_states.py
@@ -164,24 +167,26 @@ python test_db.py && python test_booking_flow.py && python test_interviewer_outc
 
 ```
 .
-├── .gitignore                      # Git ignore rules for virtual environments, OS files & caches
-├── Procfile                        # Production WSGI process definition (Render)
-├── README.md                       # Comprehensive documentation & Render guide
-├── render.yaml                     # Render.com Infrastructure-as-Code configuration
-├── runtime.txt                     # Target Python version pin
-├── requirements.txt                # Production dependencies (Flask, Gunicorn)
-├── schema.sql                      # ANSI SQL DDL schema with check constraints & foreign keys
-├── seed.sql                        # Dynamic SQL seed script for test data
-├── grit_scheduler.db               # SQLite relational database
-├── db.py                           # Relational database access layer & transactions
-├── models.py                       # Python dataclasses & Enums
-├── types.ts                        # TypeScript interface definitions
-├── seed.py                         # CLI database reset & summary script
-├── app.py                          # Flask web application & REST API
+├── .gitignore                        # Git ignore rules for virtual environments, OS files & caches
+├── Procfile                          # Production WSGI process definition (Render)
+├── README.md                         # Comprehensive documentation & Render guide
+├── GRIT_Interview_Scheduler_Writeup.pdf # Publication-quality 2-page product write-up PDF
+├── generate_pdf_writeup.py           # Vector PDF report generator script
+├── render.yaml                       # Render.com Infrastructure-as-Code configuration
+├── runtime.txt                       # Target Python version pin
+├── requirements.txt                  # Production dependencies (Flask, Gunicorn)
+├── schema.sql                        # ANSI SQL DDL schema with check constraints & foreign keys
+├── seed.sql                          # Dynamic SQL seed script for expanded roster (1 Admin, 3 Interviewers, 8 Students, 10 Slots)
+├── grit_scheduler.db                 # SQLite relational database
+├── db.py                             # Relational database access layer & transactions
+├── models.py                         # Python dataclasses & Enums
+├── types.ts                          # TypeScript interface definitions
+├── seed.py                           # CLI database reset & summary script
+├── app.py                            # Flask web application & REST API
 ├── templates/
-│   └── index.html                  # Responsive Tailwind UI (Linear / Notion aesthetic)
-├── test_db.py                      # Prompt 1 schema test suite
-├── test_booking_flow.py            # Prompt 2 student booking test suite
-├── test_interviewer_outcomes.py    # Prompt 3 interviewer outcome test suite
-└── test_admin_and_dynamic_states.py# Prompt 4 & 5 admin & dynamic states test suite
+│   └── index.html                    # Responsive Tailwind UI (Linear / Notion aesthetic)
+├── test_db.py                        # Prompt 1 schema test suite
+├── test_booking_flow.py              # Prompt 2 student booking test suite
+├── test_interviewer_outcomes.py      # Prompt 3 & Item #5 interviewer outcomes & cohort test suite
+└── test_admin_and_dynamic_states.py  # Prompt 4 & 5 admin & dynamic states test suite
 ```
