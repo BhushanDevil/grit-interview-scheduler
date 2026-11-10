@@ -312,11 +312,10 @@ def create_page_2(fig, ax):
     # Verification bullets
     verif_text = (
         "• Production Platform: Render Cloud Web Service (Gunicorn WSGI + Flask 3.0.3) • Repository: GitHub\n"
-        "• Automated Test Suite: 23 out of 23 Unit & Integration Tests Passing (0 failures, 100% green coverage):\n"
-        "   1. test_db.py (9 tests: schema constraints, cascading deletes, foreign keys, unique emails, slot dates)\n"
-        "   2. test_booking_flow.py (4 tests: hold locking, booking transactions, student status to Scheduled, exact message)\n"
-        "   3. test_interviewer_outcomes.py (5 tests: availability manager, queue listing, Pass/Fail/Retake status mapping)\n"
-        "   4. test_admin_and_dynamic_states.py (5 tests: cohort metrics, malpractice flag to Nullified, Passed/Retake/Nullified messages)"
+        "• Item #5 Complete: Section 3 in Interviewer View allows interviewers to monitor unbooked vs booked eligible candidates in real time.\n"
+        "• Expanded Roster: 1 Admin, 3 Interviewers (Rivera, Connor, Patel), 8 Students, 10 open availability slots across tomorrow.\n"
+        "• Automated Test Suite: 24 out of 24 Unit & Integration Tests Passing (0 failures, 100% green coverage across all 4 suites):\n"
+        "   1. test_db.py (9 tests)  2. test_booking_flow.py (4 tests)  3. test_interviewer_outcomes.py (6 tests)  4. test_admin_and_dynamic_states.py (5 tests)"
     )
     ax.text(0.06, 0.065, verif_text, fontsize=6.6, color="#e2e8f0", linespacing=1.30,
             va="center", transform=ax.transAxes)

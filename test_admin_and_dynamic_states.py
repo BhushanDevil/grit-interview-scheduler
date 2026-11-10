@@ -24,6 +24,9 @@ class TestAdminAndDynamicStates(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
         self.client.testing = True
+        conn = get_db_connection()
+        self.students = conn.execute("SELECT id, name, email FROM Users WHERE role = 'Student' ORDER BY id ASC").fetchall()
+        conn.close()
 
     # ================= PROMPT 4 TESTS =================
     def test_01_admin_metrics_and_student_table(self):
@@ -36,12 +39,12 @@ class TestAdminAndDynamicStates(unittest.TestCase):
         metrics = data["metrics"]
         self.assertIn("total_eligible_unbooked", metrics)
         self.assertIn("total_scheduled", metrics)
-        self.assertEqual(metrics["total_eligible_unbooked"], 3)
+        self.assertEqual(metrics["total_eligible_unbooked"], len(self.students))
         self.assertEqual(metrics["total_scheduled"], 0)
 
         # Check students list
         students = data["students"]
-        self.assertEqual(len(students), 3)
+        self.assertEqual(len(students), len(self.students))
         names = [s["name"] for s in students]
         self.assertIn("Alex Rivera", names)
         self.assertIn("Bianca Chen", names)
@@ -49,7 +52,7 @@ class TestAdminAndDynamicStates(unittest.TestCase):
 
     def test_02_flag_malpractice_updates_eligibility_to_nullified(self):
         """Prompt 4: Highly visible 'Flag Malpractice' button updates Track_Eligibility to 'Nullified'."""
-        target_student_id = 4  # Bianca Chen
+        target_student_id = self.students[1]["id"]  # Bianca Chen
 
         # Flag malpractice
         res = self.client.post('/api/admin/flag-malpractice', json={"student_id": target_student_id})
@@ -81,7 +84,7 @@ class TestAdminAndDynamicStates(unittest.TestCase):
         Exact message:
         'Congratulations! You have passed your Track Badge Interview. Your GRIT AI Systems Track Badge has been unlocked and verified on your public profile. [View Your Badge & Certificate]'
         """
-        student_id = 3  # Alex Rivera
+        student_id = self.students[0]["id"]  # Alex Rivera
         # Set status to Passed
         conn = get_db_connection()
         conn.execute("UPDATE Track_Eligibility SET status = 'Passed' WHERE student_id = ?", (student_id,))
@@ -104,7 +107,7 @@ class TestAdminAndDynamicStates(unittest.TestCase):
         Exact message:
         'Interview Outcome: Retake Required. Your interviewer has requested a retake on core architecture concepts. Your rebooking window will open on Nov 21, 2026 (7-day preparation window). Review your feedback notes here: [View Detailed Notes].'
         """
-        student_id = 5  # Devon Brooks
+        student_id = self.students[2]["id"]  # Devon Brooks
 
         # Book slot, submit evaluation as 'Retake'
         slots_res = self.client.get('/api/slots?status=Available')
@@ -139,7 +142,7 @@ class TestAdminAndDynamicStates(unittest.TestCase):
         Exact message:
         'Badge Nullified: Violation of academic integrity detected. All credentials have been revoked.'
         """
-        student_id = 4  # Bianca Chen (Nullified in test_02)
+        student_id = self.students[1]["id"]  # Bianca Chen (Nullified in test_02)
         res = self.client.get(f'/api/student/{student_id}/dashboard')
         self.assertEqual(res.status_code, 200)
         data = res.get_json()

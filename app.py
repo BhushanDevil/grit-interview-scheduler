@@ -140,7 +140,7 @@ def api_student_dashboard(student_id):
         conn.close()
 
 
-# ================= INTERVIEWER VIEW ROUTES (PROMPT 3) =================
+# ================= INTERVIEWER VIEW ROUTES (PROMPT 3 & ITEM #5) =================
 @app.route("/api/interviewer/<int:interviewer_id>/dashboard", methods=["GET"])
 def api_interviewer_dashboard(interviewer_id):
     conn = get_db_connection()
@@ -151,18 +151,26 @@ def api_interviewer_dashboard(interviewer_id):
 
         slots = get_interviewer_slots(conn, interviewer_id)
         queue = get_interviewer_queue(conn, interviewer_id)
+        cohort = get_all_students_for_admin(conn)
+
+        unbooked_count = len([s for s in cohort if s["status"] == "Eligible"])
+        booked_count = len([s for s in cohort if s["status"] == "Scheduled"])
 
         return jsonify({
             "interviewer": interviewer,
             "slots": slots,
             "queue": queue,
+            "cohort": cohort,
             "stats": {
                 "total_slots": len(slots),
                 "available_slots": len([s for s in slots if s["status"] == "Available"]),
                 "locked_slots": len([s for s in slots if s["status"] == "Locked"]),
                 "booked_slots": len([s for s in slots if s["status"] == "Booked"]),
                 "pending_evaluations": len([q for q in queue if q["outcome"] == "Pending"]),
-                "completed_evaluations": len([q for q in queue if q["outcome"] != "Pending"])
+                "completed_evaluations": len([q for q in queue if q["outcome"] != "Pending"]),
+                "unbooked_students": unbooked_count,
+                "booked_students": booked_count,
+                "total_students": len(cohort)
             }
         })
     finally:
@@ -175,6 +183,17 @@ def api_interviewer_queue(interviewer_id):
     try:
         queue = get_interviewer_queue(conn, interviewer_id)
         return jsonify({"queue": queue})
+    finally:
+        conn.close()
+
+
+@app.route("/api/interviewer/cohort", methods=["GET"])
+def api_interviewer_cohort():
+    """Item #5: Interview team view of which eligible students have booked and which haven't."""
+    conn = get_db_connection()
+    try:
+        cohort = get_all_students_for_admin(conn)
+        return jsonify({"cohort": cohort})
     finally:
         conn.close()
 

@@ -34,13 +34,13 @@ class TestDatabaseSetup(unittest.TestCase):
         self.conn.close()
 
     def test_users_count_and_roles(self):
-        """Verify 1 Admin, 1 Interviewer, and 3 Students exist."""
+        """Verify Admin, Interviewer, and Student roles exist in expected counts."""
         cursor = self.conn.execute("SELECT role, COUNT(*) as cnt FROM Users GROUP BY role")
         role_counts = {row["role"]: row["cnt"] for row in cursor.fetchall()}
 
         self.assertEqual(role_counts.get("Admin"), 1, "Expected 1 Admin user")
-        self.assertEqual(role_counts.get("Interviewer"), 1, "Expected 1 Interviewer user")
-        self.assertEqual(role_counts.get("Student"), 3, "Expected 3 Student users")
+        self.assertEqual(role_counts.get("Interviewer"), 3, "Expected 3 Interviewer users")
+        self.assertEqual(role_counts.get("Student"), 8, "Expected 8 Student users")
 
     def test_user_role_constraint(self):
         """Verify role enum constraint only allows Student, Interviewer, Admin."""
@@ -57,7 +57,7 @@ class TestDatabaseSetup(unittest.TestCase):
             )
 
     def test_track_eligibility_seeded_correctly(self):
-        """Verify all 3 students have Track_Eligibility with 'Eligible' for 'AI Systems Track'."""
+        """Verify all students have Track_Eligibility with 'Eligible' for 'AI Systems Track'."""
         cursor = self.conn.execute("""
             SELECT u.name, te.track_name, te.status
             FROM Track_Eligibility te
@@ -66,7 +66,7 @@ class TestDatabaseSetup(unittest.TestCase):
             ORDER BY u.id
         """)
         records = cursor.fetchall()
-        self.assertEqual(len(records), 3, "Expected 3 eligibility records for AI Systems Track")
+        self.assertEqual(len(records), 8, "Expected 8 eligibility records for AI Systems Track")
         for rec in records:
             self.assertEqual(rec["track_name"], "AI Systems Track")
             self.assertEqual(rec["status"], "Eligible")
@@ -88,10 +88,10 @@ class TestDatabaseSetup(unittest.TestCase):
             )
 
     def test_interviewer_slots_tomorrow(self):
-        """Verify 4 Interviewer_Slots are generated with status 'Available' for tomorrow."""
+        """Verify Interviewer_Slots are generated with status 'Available' for tomorrow."""
         cursor = self.conn.execute("SELECT * FROM Interviewer_Slots")
         slots = cursor.fetchall()
-        self.assertEqual(len(slots), 4, "Expected 4 interviewer slots")
+        self.assertEqual(len(slots), 10, "Expected 10 interviewer slots")
 
         # Verify all slots are 'Available'
         for slot in slots:

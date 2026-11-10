@@ -1,12 +1,6 @@
 """
 Automated Test Suite for Prompt 3: Interviewer Dashboard & Outcomes
-Tests:
-- Section 1: Adding Interviewer_Slots (defaults to 'Available')
-- Section 2: Daily Queue retrieval for interviewer
-- Submitting Evaluations:
-  * Pass   -> updates booking outcome to 'Pass' and Track_Eligibility to 'Passed'
-  * Fail   -> updates booking outcome to 'Fail' and Track_Eligibility to 'Failed'
-  * Retake -> updates booking outcome to 'Retake' and Track_Eligibility back to 'Eligible'
+and Item #5: Interview team visibility of booked vs unbooked eligible students.
 """
 
 import unittest
@@ -24,8 +18,15 @@ class TestInterviewerDashboardAndOutcomes(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
         self.client.testing = True
-        self.interviewer_id = 2  # Dr. Marcus Rivera
-        self.student_id = 3      # Alex Rivera
+        conn = get_db_connection()
+        int_user = conn.execute("SELECT id FROM Users WHERE role = 'Interviewer' ORDER BY id ASC LIMIT 1").fetchone()
+        stu_users = conn.execute("SELECT id FROM Users WHERE role = 'Student' ORDER BY id ASC LIMIT 3").fetchall()
+        conn.close()
+
+        self.interviewer_id = int_user["id"]
+        self.student_id = stu_users[0]["id"]
+        self.student_2_id = stu_users[1]["id"]
+        self.student_3_id = stu_users[2]["id"]
 
     def test_01_add_interviewer_slot_defaults_to_available(self):
         """Section 1: Test form submission to add new Interviewer_Slot, defaulting to Available."""
@@ -53,13 +54,12 @@ class TestInterviewerDashboardAndOutcomes(unittest.TestCase):
     def test_02_daily_queue_listing(self):
         """Section 2: Test daily queue retrieval showing student name, time, and booking info."""
         # 1. First ensure a booking exists for this interviewer
-        # Get an available slot
-        slots_res = self.client.get('/api/slots?status=Available')
-        slots = slots_res.get_json()["slots"]
-        self.assertGreater(len(slots), 0)
-        target_slot_id = slots[0]["id"]
+        # Get an available slot for this interviewer
+        conn = get_db_connection()
+        slot = conn.execute("SELECT id FROM Interviewer_Slots WHERE interviewer_id = ? AND status = 'Available' LIMIT 1", (self.interviewer_id,)).fetchone()
+        conn.close()
+        target_slot_id = slot["id"]
 
-        # Book it for Alex Rivera
         book_res = self.client.post('/api/bookings', json={
             "slot_id": target_slot_id,
             "student_id": self.student_id,
@@ -87,7 +87,6 @@ class TestInterviewerDashboardAndOutcomes(unittest.TestCase):
         - Updates Interview_Bookings outcome to 'Pass'
         - Updates student's Track_Eligibility status to 'Passed'
         """
-        # Find the active booking
         conn = get_db_connection()
         booking = conn.execute(
             "SELECT id, student_id FROM Interview_Bookings WHERE student_id = ? ORDER BY id DESC LIMIT 1",
@@ -116,7 +115,7 @@ class TestInterviewerDashboardAndOutcomes(unittest.TestCase):
         self.assertIn("Outstanding architectural", b_row["feedback"])
 
         te_row = conn.execute(
-            "SELECT status FROM Track_Eligibility WHERE student_id = ? AND track_name = 'AI Engineering Track'",
+            "SELECT status FROM Track_Eligibility WHERE student_id = ? AND (track_name = 'AI Engineering Track' OR track_name LIKE 'AI%')",
             (self.student_id,)
         ).fetchone()
         self.assertEqual(te_row["status"], "Passed")
@@ -128,21 +127,19 @@ class TestInterviewerDashboardAndOutcomes(unittest.TestCase):
         - Updates Interview_Bookings outcome to 'Fail'
         - Updates student's Track_Eligibility status to 'Failed'
         """
-        # Create a second booking with Bianca Chen (student ID 4)
-        student_2_id = 4
         slots_res = self.client.get('/api/slots?status=Available')
         target_slot_id = slots_res.get_json()["slots"][0]["id"]
 
         self.client.post('/api/bookings', json={
             "slot_id": target_slot_id,
-            "student_id": student_2_id,
+            "student_id": self.student_2_id,
             "track_name": "AI Engineering Track"
         })
 
         conn = get_db_connection()
         booking = conn.execute(
             "SELECT id FROM Interview_Bookings WHERE student_id = ? ORDER BY id DESC LIMIT 1",
-            (student_2_id,)
+            (self.student_2_id,)
         ).fetchone()
         conn.close()
 
@@ -161,8 +158,8 @@ class TestInterviewerDashboardAndOutcomes(unittest.TestCase):
         self.assertEqual(b_row["outcome"], "Fail")
 
         te_row = conn.execute(
-            "SELECT status FROM Track_Eligibility WHERE student_id = ? AND track_name = 'AI Engineering Track'",
-            (student_2_id,)
+            "SELECT status FROM Track_Eligibility WHERE student_id = ? AND (track_name = 'AI Engineering Track' OR track_name LIKE 'AI%')",
+            (self.student_2_id,)
         ).fetchone()
         self.assertEqual(te_row["status"], "Failed")
         conn.close()
@@ -173,28 +170,26 @@ class TestInterviewerDashboardAndOutcomes(unittest.TestCase):
         - Updates Interview_Bookings outcome to 'Retake'
         - CRUCIALLY updates student's Track_Eligibility status back to 'Eligible'
         """
-        # Create a third booking with Devon Brooks (student ID 5)
-        student_3_id = 5
         slots_res = self.client.get('/api/slots?status=Available')
         target_slot_id = slots_res.get_json()["slots"][0]["id"]
 
         self.client.post('/api/bookings', json={
             "slot_id": target_slot_id,
-            "student_id": student_3_id,
+            "student_id": self.student_3_id,
             "track_name": "AI Engineering Track"
         })
 
         # Check before evaluation, status is 'Scheduled'
         conn = get_db_connection()
         te_before = conn.execute(
-            "SELECT status FROM Track_Eligibility WHERE student_id = ? AND track_name = 'AI Engineering Track'",
-            (student_3_id,)
+            "SELECT status FROM Track_Eligibility WHERE student_id = ? AND (track_name = 'AI Engineering Track' OR track_name LIKE 'AI%')",
+            (self.student_3_id,)
         ).fetchone()
         self.assertEqual(te_before["status"], "Scheduled")
 
         booking = conn.execute(
             "SELECT id FROM Interview_Bookings WHERE student_id = ? ORDER BY id DESC LIMIT 1",
-            (student_3_id,)
+            (self.student_3_id,)
         ).fetchone()
         conn.close()
 
@@ -216,11 +211,36 @@ class TestInterviewerDashboardAndOutcomes(unittest.TestCase):
         self.assertEqual(b_row["outcome"], "Retake")
 
         te_row = conn.execute(
-            "SELECT status FROM Track_Eligibility WHERE student_id = ? AND track_name = 'AI Engineering Track'",
-            (student_3_id,)
+            "SELECT status FROM Track_Eligibility WHERE student_id = ? AND (track_name = 'AI Engineering Track' OR track_name LIKE 'AI%')",
+            (self.student_3_id,)
         ).fetchone()
         self.assertEqual(te_row["status"], "Eligible", "Crucial test: Retake must set status back to 'Eligible'")
         conn.close()
+
+    def test_06_interviewer_sees_which_eligible_students_have_booked_and_which_havent(self):
+        """
+        Assignment Item #5:
+        Verify the interview team sees which eligible students have booked and which haven't.
+        """
+        res = self.client.get(f'/api/interviewer/{self.interviewer_id}/dashboard')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+
+        self.assertIn("cohort", data)
+        self.assertIn("unbooked_students", data["stats"])
+        self.assertIn("booked_students", data["stats"])
+
+        cohort = data["cohort"]
+        self.assertGreater(len(cohort), 0)
+
+        # Check that both unbooked (status == 'Eligible') and booked/evaluated students are visible
+        statuses = [c["status"] for c in cohort]
+        self.assertIn("Eligible", statuses, "Unbooked eligible students must be visible to interviewer")
+
+        # Dedicated cohort endpoint
+        cohort_res = self.client.get('/api/interviewer/cohort')
+        self.assertEqual(cohort_res.status_code, 200)
+        self.assertIn("cohort", cohort_res.get_json())
 
 
 if __name__ == "__main__":

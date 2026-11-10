@@ -105,11 +105,24 @@
           </div>
           <div class="relative">
             <select id="user-select" onchange="onUserSelectChange(this.value)" class="text-xs font-medium bg-transparent border-none text-slate-700 cursor-pointer pr-6 focus:ring-0 focus:outline-none py-1">
-              <option value="3">Alex Rivera (Student)</option>
-              <option value="4">Bianca Chen (Student)</option>
-              <option value="5">Devon Brooks (Student)</option>
-              <option value="2">Dr. Marcus Rivera (Interviewer)</option>
-              <option value="1">Eleanor Vance (Admin)</option>
+              <optgroup label="Students (8 Candidates)">
+                <option value="5">Alex Rivera (Student)</option>
+                <option value="6">Bianca Chen (Student)</option>
+                <option value="7">Devon Brooks (Student)</option>
+                <option value="8">Elena Rostova (Student)</option>
+                <option value="9">Carlos Mendez (Student)</option>
+                <option value="10">Aisha Khan (Student)</option>
+                <option value="11">Liam O'Connor (Student)</option>
+                <option value="12">Priya Sharma (Student)</option>
+              </optgroup>
+              <optgroup label="Interviewers (3 Evaluators)">
+                <option value="2">Dr. Marcus Rivera (Interviewer)</option>
+                <option value="3">Prof. Sarah Connor (Interviewer)</option>
+                <option value="4">Dr. Vikram Patel (Interviewer)</option>
+              </optgroup>
+              <optgroup label="Admin">
+                <option value="1">Eleanor Vance (Admin)</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -549,6 +562,58 @@
             <i data-lucide="user-check" class="w-3.5 h-3.5 text-slate-500"></i>
             <span>Simulate Candidate Booking</span>
           </button>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 3: ELIGIBLE STUDENTS COHORT (ITEM #5) ================= -->
+      <section class="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Item #5 Complete
+              </span>
+              <h2 class="text-base font-semibold text-slate-900 tracking-tight">Section 3: Eligible Students Cohort (Unbooked vs Booked)</h2>
+            </div>
+            <p class="text-xs text-slate-500">See which eligible students have booked their badge interview and which haven't.</p>
+          </div>
+          <div class="flex items-center space-x-2 text-xs">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>
+              <span id="cohort-unbooked-count">0 Unbooked</span>
+            </span>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 font-medium">
+              <span class="w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span>
+              <span id="cohort-booked-count">0 Booked</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Filter tabs: All, Unbooked, Booked -->
+        <div class="flex items-center justify-between">
+          <div class="inline-flex p-1 bg-slate-100 rounded-lg text-xs font-medium space-x-1 border border-slate-200/60">
+            <button type="button" onclick="filterInterviewerCohort('all')" id="cohort-filter-all" class="px-3 py-1 rounded-md bg-white text-slate-900 shadow-sm transition-all">All Students</button>
+            <button type="button" onclick="filterInterviewerCohort('unbooked')" id="cohort-filter-unbooked" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 transition-all">Unbooked (Awaiting Slot)</button>
+            <button type="button" onclick="filterInterviewerCohort('booked')" id="cohort-filter-booked" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 transition-all">Booked (Scheduled)</button>
+          </div>
+          <span class="text-xs text-slate-400 font-mono" id="cohort-visible-count">8 students listed</span>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto border border-slate-200/80 rounded-xl">
+          <table class="w-full text-left text-xs text-slate-700">
+            <thead class="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
+              <tr>
+                <th class="px-4 py-3">Student Candidate</th>
+                <th class="px-4 py-3">Eligible Track</th>
+                <th class="px-4 py-3">Booking Status</th>
+                <th class="px-4 py-3">Assigned Schedule</th>
+              </tr>
+            </thead>
+            <tbody id="interviewer-cohort-table-body" class="divide-y divide-slate-100 bg-white">
+              <!-- Populated dynamically via JS -->
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
@@ -1399,10 +1464,104 @@
 
         renderInterviewerSlots(data.slots);
         renderDailyQueue(data.queue);
+        renderInterviewerCohort(data.cohort);
         lucide.createIcons();
       } catch (err) {
         console.error("Interviewer dashboard error:", err);
       }
+    }
+
+    let currentCohortFilter = 'all';
+
+    function filterInterviewerCohort(filter) {
+      currentCohortFilter = filter;
+      const btnAll = document.getElementById('cohort-filter-all');
+      const btnUnbooked = document.getElementById('cohort-filter-unbooked');
+      const btnBooked = document.getElementById('cohort-filter-booked');
+
+      [btnAll, btnUnbooked, btnBooked].forEach(b => {
+        b.className = "px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 transition-all";
+      });
+
+      const activeClass = "px-3 py-1 rounded-md bg-white text-slate-900 shadow-sm transition-all";
+      if (filter === 'all') btnAll.className = activeClass;
+      else if (filter === 'unbooked') btnUnbooked.className = activeClass;
+      else if (filter === 'booked') btnBooked.className = activeClass;
+
+      if (cachedInterviewerData && cachedInterviewerData.cohort) {
+        renderInterviewerCohort(cachedInterviewerData.cohort);
+      }
+    }
+
+    function renderInterviewerCohort(cohort) {
+      if (!cohort) return;
+      const unbooked = cohort.filter(s => s.status === 'Eligible');
+      const booked = cohort.filter(s => s.status === 'Scheduled');
+      
+      const unbookedLabel = document.getElementById('cohort-unbooked-count');
+      const bookedLabel = document.getElementById('cohort-booked-count');
+      if (unbookedLabel) unbookedLabel.innerText = `${unbooked.length} Unbooked`;
+      if (bookedLabel) bookedLabel.innerText = `${booked.length} Booked`;
+
+      const tbody = document.getElementById('interviewer-cohort-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let filtered = cohort;
+      if (currentCohortFilter === 'unbooked') {
+        filtered = unbooked;
+      } else if (currentCohortFilter === 'booked') {
+        filtered = booked;
+      }
+
+      const visibleLabel = document.getElementById('cohort-visible-count');
+      if (visibleLabel) visibleLabel.innerText = `${filtered.length} student${filtered.length === 1 ? '' : 's'} listed`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-slate-400">No students found matching this filter.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(s => {
+        const isUnbooked = s.status === 'Eligible';
+        const isScheduled = s.status === 'Scheduled';
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50/60 transition-colors";
+
+        let badge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Unbooked (Eligible)</span>`;
+        if (isScheduled) {
+          badge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-800 border border-blue-200"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5"></span>Booked (Scheduled)</span>`;
+        } else if (s.status === 'Passed') {
+          badge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-900 border border-emerald-300">Passed</span>`;
+        } else if (s.status === 'Failed') {
+          badge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-800 border border-rose-200">Failed</span>`;
+        } else if (s.status === 'Nullified') {
+          badge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-900 border border-rose-300">Nullified</span>`;
+        }
+
+        let scheduleText = `<span class="text-slate-400 italic text-[11px]">Awaiting slot selection by student</span>`;
+        if (s.slot_time) {
+          scheduleText = `<span class="font-medium text-slate-800">${formatSlotTime(s.slot_time)}</span> <span class="text-slate-400 block text-[10px]">with ${s.interviewer_name || 'Assigned Evaluator'}</span>`;
+        }
+
+        tr.innerHTML = `
+          <td class="px-4 py-3">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
+                ${s.name.split(' ').map(n => n[0]).join('')}
+              </div>
+              <div>
+                <div class="font-semibold text-slate-900">${s.name}</div>
+                <div class="text-[10px] text-slate-400 font-mono">${s.email}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3 font-medium text-slate-700">${s.track_name}</td>
+          <td class="px-4 py-3">${badge}</td>
+          <td class="px-4 py-3">${scheduleText}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
     function renderInterviewerSlots(slots) {
