@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GRIT Interview Scheduler</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          colors: {
+            grit: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    /* Confetti animation pattern for Passed state */
+    .confetti-bg {
+      background-color: #f0fdf4;
+      background-image: radial-gradient(#10b981 0.75px, transparent 0.75px), radial-gradient(#3b82f6 0.75px, #f0fdf4 0.75px);
+      background-size: 30px 30px;
+      background-position: 0 0, 15px 15px;
+    }
+  </style>
+</head>
+<body class="bg-[#fbfbfa] text-slate-900 min-h-screen flex flex-col antialiased selection:bg-slate-200">
+
+  <!-- ================= TOP NAVIGATION / ROLE SWITCHER ================= -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 transition-all">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      
+      <!-- Brand & Track Tag -->
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white shadow-sm font-semibold tracking-tight text-sm">
+          G
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="font-semibold text-slate-900 tracking-tight text-sm sm:text-base">GRIT Interview Scheduler</span>
+          <span class="hidden sm:inline-block text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+            Track Badges
+          </span>
+        </div>
+      </div>
+
+      <!-- Center: Role Switcher (Notion / Linear Segmented Pill) -->
+      <nav class="flex items-center bg-slate-100/90 p-1 rounded-lg border border-slate-200/70 text-xs font-medium">
+        <button id="role-tab-student" onclick="switchRole('Student')" class="px-3.5 py-1.5 rounded-md transition-all font-medium flex items-center space-x-1.5 bg-white text-slate-900 shadow-sm border border-slate-200/60">
+          <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+          <span>Student</span>
+        </button>
+        <button id="role-tab-interviewer" onclick="switchRole('Interviewer')" class="px-3.5 py-1.5 rounded-md transition-all text-slate-500 hover:text-slate-900 flex items-center space-x-1.5">
+          <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+          <span>Interviewer</span>
+        </button>
+        <button id="role-tab-admin" onclick="switchRole('Admin')" class="px-3.5 py-1.5 rounded-md transition-all text-slate-500 hover:text-slate-900 flex items-center space-x-1.5">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+          <span>Admin</span>
+        </button>
+      </nav>
+
+      <!-- Right: User Profile & Test Switcher -->
+      <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 text-xs font-medium border border-slate-300" id="user-avatar">
+            AR
+          </div>
+          <div class="relative">
+            <select id="user-select" onchange="onUserSelectChange(this.value)" class="text-xs font-medium bg-transparent border-none text-slate-700 cursor-pointer pr-6 focus:ring-0 focus:outline-none py-1">
+              <option value="3">Alex Rivera (Student)</option>
+              <option value="4">Bianca Chen (Student)</option>
+              <option value="5">Devon Brooks (Student)</option>
+              <option value="2">Dr. Marcus Rivera (Interviewer)</option>
+              <option value="1">Eleanor Vance (Admin)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Quick Reset Dummy Data Button -->
+        <button onclick="resetData()" title="Reset initial test data" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-md hover:bg-slate-100 transition-colors">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+
+    <!-- ============================================================== -->
+    <!-- STUDENT VIEW (PROMPT 2 & PROMPT 5 DYNAMIC STATES)               -->
+    <!-- ============================================================== -->
+    <div id="student-view" class="space-y-6">
+
+      <!-- ================= PROMPT 5: NULLIFIED RED LOCKED SCREEN ================= -->
+      <!-- OVERWRITES THE ENTIRE DASHBOARD WHEN STATUS == 'Nullified' -->
+      <div id="nullified-locked-screen" class="hidden rounded-2xl bg-gradient-to-b from-rose-950/95 via-rose-900 to-rose-950 text-white p-8 sm:p-14 border-2 border-rose-600 shadow-2xl space-y-8 animate-fadeIn text-center">
+        <div class="max-w-2xl mx-auto space-y-6">
+          
+          <!-- Shield Icon -->
+          <div class="w-20 h-20 rounded-2xl bg-rose-800/80 border-2 border-rose-500/80 text-rose-200 flex items-center justify-center mx-auto shadow-inner">
+            <i data-lucide="shield-alert" class="w-10 h-10 text-rose-300"></i>
+          </div>
+
+          <div class="space-y-3">
+            <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-800/90 text-rose-200 border border-rose-500 tracking-wide uppercase">
+              <span class="w-2 h-2 rounded-full bg-rose-400 mr-2 animate-ping"></span>
+              Academic Integrity Lockout
+            </div>
+            
+            <!-- Exact Prompt 5 Nullified Message -->
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug">
+              Badge Nullified: Violation of academic integrity detected. All credentials have been revoked.
+            </h1>
+
+            <p class="text-sm text-rose-200 leading-relaxed max-w-lg mx-auto">
+              This account has been flagged for unauthorized collaboration or academic malpractice during the technical badge interview process. Access to interview booking, credential verification, and badge claims is permanently suspended.
+            </p>
+          </div>
+
+          <!-- Lockout Details Box -->
+          <div class="bg-rose-900/60 border border-rose-700/80 rounded-xl p-4 text-xs text-rose-100 max-w-md mx-auto grid grid-cols-2 gap-3 text-left">
+            <div>
+              <span class="text-rose-400 block text-[10px] font-semibold uppercase">Account</span>
+              <span class="font-medium" id="nullified-student-name">Alex Rivera</span>
+            </div>
+            <div>
+              <span class="text-rose-400 block text-[10px] font-semibold uppercase">Disciplinary Case</span>
+              <span class="font-mono text-rose-300">#MAL-2026-094</span>
+            </div>
+            <div>
+              <span class="text-rose-400 block text-[10px] font-semibold uppercase">Status</span>
+              <span class="font-bold text-rose-300">Nullified / Revoked</span>
+            </div>
+            <div>
+              <span class="text-rose-400 block text-[10px] font-semibold uppercase">Appeal Window</span>
+              <span class="text-rose-300">Closed</span>
+            </div>
+          </div>
+
+          <div class="pt-2 text-xs text-rose-300">
+            For inquiry or documentation regarding this determination, contact the Academic Standards Committee at <a href="mailto:integrity@grit.edu" class="underline text-white font-medium hover:text-rose-100">integrity@grit.edu</a>.
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= REGULAR STUDENT DASHBOARD CONTENT ================= -->
+      <!-- (Hidden automatically when Status == 'Nullified') -->
+      <div id="student-normal-container" class="space-y-6">
+
+        <!-- ================= PROMPT 5: PASSED CELEBRATORY CARD ================= -->
+        <div id="passed-celebratory-card" class="hidden rounded-2xl border-2 border-emerald-400 confetti-bg p-6 sm:p-8 shadow-sm transition-all animate-fadeIn">
+          <div class="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-5 text-center sm:text-left">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-lg border border-emerald-300 flex-shrink-0">
+              <i data-lucide="award" class="w-9 h-9"></i>
+            </div>
+            <div class="space-y-2 flex-1">
+              <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <i data-lucide="check-circle" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i>
+                Badge Verified & Issued
+              </div>
+              
+              <!-- Exact Prompt 5 Passed Message -->
+              <p class="text-base sm:text-lg font-semibold text-emerald-950 leading-relaxed">
+                Congratulations! You have passed your Track Badge Interview. Your GRIT AI Systems Track Badge has been unlocked and verified on your public profile. 
+                <button onclick="openCertificateModal()" class="text-emerald-700 underline font-bold hover:text-emerald-900 ml-1 inline-flex items-center space-x-1">
+                  <span>[View Your Badge & Certificate]</span>
+                  <i data-lucide="external-link" class="w-3.5 h-3.5 inline"></i>
+                </button>
+              </p>
+              
+              <p class="text-xs text-emerald-800/80">
+                Issued by <strong id="passed-interviewer-name">Dr. Marcus Rivera</strong> • Verified on the GRIT Academic Ledger
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= PROMPT 5: RETAKE WARNING CARD ================= -->
+        <div id="retake-warning-card" class="hidden rounded-xl bg-amber-50/90 border border-amber-300 text-amber-900 p-6 shadow-sm transition-all animate-fadeIn">
+          <div class="flex items-start space-x-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 border border-amber-300">
+              <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <div class="space-y-1.5 flex-1">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-amber-800">Action Required</span>
+                <span class="text-xs text-amber-500">•</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800 border border-amber-300">
+                  Retake Decision
+                </span>
+              </div>
+              
+              <!-- Exact Prompt 5 Retake Message -->
+              <p class="text-sm font-medium text-amber-950 leading-relaxed">
+                Interview Outcome: Retake Required. Your interviewer has requested a retake on core architecture concepts. Your rebooking window will open on Nov 21, 2026 (7-day preparation window). Review your feedback notes here: 
+                <button onclick="openFeedbackNotesModal()" class="text-amber-800 underline font-bold hover:text-amber-950 ml-1 inline-flex items-center space-x-1">
+                  <span>[View Detailed Notes]</span>
+                  <i data-lucide="file-text" class="w-3.5 h-3.5 inline"></i>
+                </button>.
+              </p>
+
+              <div class="pt-2 flex flex-wrap items-center gap-2 text-xs text-amber-800">
+                <span class="inline-flex items-center px-2 py-1 bg-white/70 rounded-md border border-amber-200">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5 mr-1 text-amber-600"></i>
+                  Rebooking Opens: <strong>Nov 21, 2026</strong>
+                </span>
+                <span class="inline-flex items-center px-2 py-1 bg-white/70 rounded-md border border-amber-200">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1 text-amber-600"></i>
+                  Track Eligibility: <strong>Eligible</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= PROMPT 2: SUCCESS BANNER (WHEN SCHEDULED) ================= -->
+        <div id="success-banner" class="hidden transition-all duration-300 bg-emerald-50/90 border border-emerald-200 text-emerald-900 rounded-xl p-5 shadow-sm">
+          <div class="flex items-start space-x-3.5">
+            <div class="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-200">
+              <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center space-x-2">
+                <h3 class="text-sm font-semibold text-emerald-900 tracking-tight">Interview Confirmed</h3>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Scheduled
+                </span>
+              </div>
+              <!-- Exact Prompt 2 Banner Text -->
+              <p id="success-banner-text" class="mt-1 text-sm text-emerald-800 leading-relaxed font-normal">
+                You’re booked! Your AI Engineering Track Interview is confirmed for Thursday, Nov 14 at 4:30 PM IST. A calendar invitation with your meeting link has been sent to your email. Please join 5 minutes early with your camera and workspace ready.
+              </p>
+              <div class="mt-3.5 flex flex-wrap gap-2 text-xs">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-white/80 border border-emerald-200 text-emerald-800 font-medium space-x-1.5">
+                  <i data-lucide="video" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span>Google Meet Link Attached</span>
+                </span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-white/80 border border-emerald-200 text-emerald-800 font-medium space-x-1.5">
+                  <i data-lucide="mail-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span id="calendar-email-dest">Invite Sent to Student Email</span>
+                </span>
+              </div>
+            </div>
+            <button onclick="dismissSuccessBanner()" class="text-emerald-700 hover:text-emerald-900 p-1 rounded-md hover:bg-emerald-100 transition-colors">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= HEADER PROGRESS CARD ================= -->
+        <section class="bg-white rounded-xl border border-slate-200/80 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-1.5">
+              <div class="flex items-center space-x-2">
+                <span id="student-status-badge-pill" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                  Eligible for Badge
+                </span>
+                <span class="text-xs text-slate-400">•</span>
+                <span class="text-xs text-slate-500 font-medium" id="student-name-display">Alex Rivera</span>
+              </div>
+              
+              <!-- Exact Prompt 2 Header Text -->
+              <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight" id="track-header-title">
+                AI Engineering Track: 100% Complete. You are eligible for your interview.
+              </h1>
+              
+              <p class="text-sm text-slate-500 max-w-2xl" id="track-header-desc">
+                All coursework, project milestones, and prerequisite badges are verified. Schedule your 45-minute live technical evaluation with an evaluator below to earn your verified credential.
+              </p>
+            </div>
+
+            <div class="flex items-center space-x-3 bg-slate-50 px-4 py-3 rounded-lg border border-slate-200/70 self-start md:self-auto">
+              <div class="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-sm" id="progress-dial">
+                100%
+              </div>
+              <div class="text-xs">
+                <div class="font-semibold text-slate-800">Prerequisites Met</div>
+                <div class="text-slate-500">4 of 4 Badges Earned</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
+            <div class="flex items-center space-x-4">
+              <span class="flex items-center text-emerald-700 font-medium space-x-1">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>Core Modules</span>
+              </span>
+              <span class="flex items-center text-emerald-700 font-medium space-x-1">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>System Design Capstone</span>
+              </span>
+              <span class="flex items-center text-emerald-700 font-medium space-x-1">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>Code Verification</span>
+              </span>
+            </div>
+            <div class="text-slate-400 font-mono text-[11px]" id="track-status-pill">
+              Track Status: <span class="text-emerald-700 font-semibold" id="student-eligibility-status-badge">Eligible</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= EXISTING BOOKING DETAILS ================= -->
+        <section id="existing-booking-card" class="hidden bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200">
+                <i data-lucide="calendar-check" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h2 class="text-sm font-semibold text-slate-900">Your Badge Interview</h2>
+                <p class="text-xs text-slate-500">Evaluation details and status</p>
+              </div>
+            </div>
+            <span id="booking-status-badge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+              Booking Confirmed
+            </span>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200/60">
+              <span class="text-slate-400 uppercase tracking-wider text-[10px] font-semibold">Date & Time</span>
+              <div class="mt-1 font-semibold text-slate-900 text-sm" id="booking-time-display">Tomorrow, 09:00 AM</div>
+              <div class="text-slate-500 text-[11px]">45 Minutes • Google Meet</div>
+            </div>
+            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200/60">
+              <span class="text-slate-400 uppercase tracking-wider text-[10px] font-semibold">Interviewer</span>
+              <div class="mt-1 font-semibold text-slate-900 text-sm" id="booking-interviewer-display">Dr. Marcus Rivera</div>
+              <div class="text-slate-500 text-[11px]">Staff AI Evaluator</div>
+            </div>
+            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200/60">
+              <span class="text-slate-400 uppercase tracking-wider text-[10px] font-semibold">Evaluation Outcome</span>
+              <div class="mt-1 flex items-center space-x-1.5" id="booking-outcome-container">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span class="font-semibold text-slate-900 text-sm" id="booking-outcome-display">Pending Evaluation</span>
+              </div>
+              <div class="text-slate-500 text-[11px]" id="booking-feedback-preview">Results posted within 24h</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= AVAILABLE SLOTS SECTION ================= -->
+        <section id="available-slots-section" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <h2 class="text-base font-semibold text-slate-900 tracking-tight">Available Interview Slots</h2>
+              <span id="slots-count-badge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                4 available
+              </span>
+            </div>
+            <div class="flex items-center space-x-3 text-xs text-slate-500">
+              <span class="inline-flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span>Available</span>
+              </span>
+              <span class="inline-flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>Locked (Hold)</span>
+              </span>
+              <span class="inline-flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span>Booked</span>
+              </span>
+            </div>
+          </div>
+
+          <div id="hold-notification" class="hidden bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3 text-xs flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="clock" class="w-4 h-4 text-amber-600 animate-spin"></i>
+              <span><strong>Booking Hold Active:</strong> Slot is reserved for you while you confirm.</span>
+            </div>
+            <span class="font-mono font-medium text-amber-800" id="hold-timer">05:00 remaining</span>
+          </div>
+
+          <div id="slots-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Slots dynamically rendered -->
+          </div>
+
+          <div id="no-slots-state" class="hidden bg-white rounded-xl border border-slate-200/80 p-12 text-center">
+            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <i data-lucide="calendar-x" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-sm font-semibold text-slate-800">No Available Slots Found</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              All slots have been booked or held. Switch to the Interviewer view to publish more availability slots.
+            </p>
+          </div>
+        </section>
+
+      </div> <!-- end #student-normal-container -->
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- INTERVIEWER VIEW (PROMPT 3)                                    -->
+    <!-- ============================================================== -->
+    <div id="interviewer-view" class="hidden space-y-8">
+      <section class="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center space-x-2">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                Staff Evaluator
+              </span>
+              <span class="text-xs text-slate-400">•</span>
+              <span class="text-xs text-slate-500 font-medium">Interviewer Portal</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight" id="interviewer-name-display">
+              Dr. Marcus Rivera
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500">
+              Manage your availability calendar and evaluate candidate competency in the daily interview queue.
+            </p>
+          </div>
+
+          <div class="flex items-center space-x-2 sm:space-x-3 text-xs">
+            <div class="bg-slate-50 px-3.5 py-2.5 rounded-lg border border-slate-200 text-center min-w-[80px]">
+              <div class="text-lg font-bold text-slate-900" id="stat-available-slots">0</div>
+              <div class="text-[11px] text-slate-500">Open Slots</div>
+            </div>
+            <div class="bg-slate-50 px-3.5 py-2.5 rounded-lg border border-slate-200 text-center min-w-[80px]">
+              <div class="text-lg font-bold text-amber-600" id="stat-pending-queue">0</div>
+              <div class="text-[11px] text-slate-500">Pending Queue</div>
+            </div>
+            <div class="bg-slate-50 px-3.5 py-2.5 rounded-lg border border-slate-200 text-center min-w-[80px]">
+              <div class="text-lg font-bold text-emerald-600" id="stat-completed-evals">0</div>
+              <div class="text-[11px] text-slate-500">Evaluated</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 1: Manage Availability -->
+      <section class="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-semibold text-slate-900 tracking-tight">Section 1: Manage Availability</h2>
+            <p class="text-xs text-slate-500">Add new interviewer availability slots for students to book (defaults to 'Available').</p>
+          </div>
+          <span class="text-xs font-mono text-slate-400">Table: Interviewer_Slots</span>
+        </div>
+
+        <form id="add-slot-form" onsubmit="onAddSlotSubmit(event)" class="bg-slate-50 p-4 rounded-xl border border-slate-200/70 flex flex-col md:flex-row items-stretch md:items-end gap-3 text-xs">
+          <div class="flex-1 space-y-1">
+            <label for="slot-datetime-input" class="block font-medium text-slate-700">
+              Select Start Date & Time
+            </label>
+            <input 
+              type="datetime-local" 
+              id="slot-datetime-input" 
+              required 
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono shadow-sm"
+            >
+          </div>
+
+          <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 md:pb-0">
+            <button type="button" onclick="setQuickSlotTime(10, 0)" class="px-2.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-[11px] font-medium transition-colors whitespace-nowrap shadow-sm">
+              Tomorrow 10:00 AM
+            </button>
+            <button type="button" onclick="setQuickSlotTime(14, 0)" class="px-2.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-[11px] font-medium transition-colors whitespace-nowrap shadow-sm">
+              Tomorrow 02:00 PM
+            </button>
+            <button type="button" onclick="setQuickSlotTime(15, 30)" class="px-2.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-[11px] font-medium transition-colors whitespace-nowrap shadow-sm">
+              Tomorrow 03:30 PM
+            </button>
+          </div>
+
+          <button type="submit" id="add-slot-btn" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium text-xs flex items-center justify-center space-x-1.5 shadow-sm transition-all whitespace-nowrap">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add Slot</span>
+          </button>
+        </form>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Your Published Slots</span>
+            <span id="interviewer-slots-count">0 slots listed</span>
+          </div>
+
+          <div id="interviewer-slots-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3"></div>
+        </div>
+      </section>
+
+      <!-- Section 2: Daily Queue -->
+      <section class="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+          <div>
+            <h2 class="text-base font-semibold text-slate-900 tracking-tight">Section 2: Daily Queue</h2>
+            <p class="text-xs text-slate-500">List of Interview_Bookings tied to this interviewer. Review candidates and submit outcomes.</p>
+          </div>
+          <span class="text-xs font-mono text-slate-400">Table: Interview_Bookings</span>
+        </div>
+
+        <div id="queue-container" class="space-y-3"></div>
+
+        <div id="empty-queue-state" class="hidden bg-slate-50 rounded-xl border border-slate-200/70 p-8 text-center space-y-3">
+          <div class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mx-auto">
+            <i data-lucide="inbox" class="w-5 h-5"></i>
+          </div>
+          <div class="space-y-1">
+            <h3 class="text-xs font-semibold text-slate-800">No Candidates in Daily Queue</h3>
+            <p class="text-[11px] text-slate-500 max-w-sm mx-auto">
+              There are currently no confirmed student bookings for your slots.
+            </p>
+          </div>
+          <button onclick="simulateQuickBooking()" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-100 transition-colors shadow-sm space-x-1.5">
+            <i data-lucide="user-check" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Simulate Candidate Booking</span>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ADMIN / OPERATIONS VIEW (PROMPT 4)                             -->
+    <!-- ============================================================== -->
+    <div id="admin-view" class="hidden space-y-8">
+      
+      <!-- Admin Header -->
+      <section class="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center space-x-2">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                Operations & Governance
+              </span>
+              <span class="text-xs text-slate-400">•</span>
+              <span class="text-xs text-slate-500 font-medium">Cohort Oversight</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              Admin & Operations Dashboard
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500">
+              Monitor student progression metrics, eligibility lifecycle, and enforce academic integrity standards.
+            </p>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <span class="text-xs text-slate-500">Logged in as:</span>
+            <span class="text-xs font-semibold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+              Eleanor Vance (Admin)
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PROMPT 4: DASHBOARD METRICS ================= -->
+      <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        
+        <!-- Metric 1: Total Eligible (Unbooked) -->
+        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Eligible (Unbooked)</span>
+            <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+              <i data-lucide="user-check" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="text-3xl font-extrabold text-slate-900 tracking-tight" id="metric-total-eligible">0</div>
+          <p class="text-[11px] text-slate-500">Students with 100% completion awaiting slot reservation</p>
+        </div>
+
+        <!-- Metric 2: Total Scheduled -->
+        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Scheduled</span>
+            <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="text-3xl font-extrabold text-slate-900 tracking-tight" id="metric-total-scheduled">0</div>
+          <p class="text-[11px] text-slate-500">Interviews booked in active queue with evaluators</p>
+        </div>
+
+        <!-- Metric 3: Total Passed -->
+        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Badges Issued</span>
+            <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+              <i data-lucide="award" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="text-3xl font-extrabold text-emerald-700 tracking-tight" id="metric-total-passed">0</div>
+          <p class="text-[11px] text-slate-500">Candidates with Passed evaluations on verified tracks</p>
+        </div>
+
+        <!-- Metric 4: Total Nullified (Malpractice) -->
+        <div class="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-rose-600 uppercase tracking-wider">Malpractice Flags</span>
+            <div class="w-7 h-7 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center border border-rose-200">
+              <i data-lucide="shield-alert" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div class="text-3xl font-extrabold text-rose-700 tracking-tight" id="metric-total-nullified">0</div>
+          <p class="text-[11px] text-slate-500">Credentials revoked under academic integrity policy</p>
+        </div>
+
+      </section>
+
+      <!-- ================= PROMPT 4: STUDENTS DATA TABLE ================= -->
+      <section class="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-semibold text-slate-900 tracking-tight">Student Cohort Eligibility & Governance</h2>
+            <p class="text-xs text-slate-500">Complete registry of students, track badges, and integrity enforcement actions.</p>
+          </div>
+          <span class="text-xs font-mono text-slate-400 bg-slate-50 px-2.5 py-1 rounded border border-slate-200">
+            Source: Users ⋈ Track_Eligibility
+          </span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700">
+            <thead class="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
+              <tr>
+                <th class="px-5 py-3.5">Student</th>
+                <th class="px-5 py-3.5">Track Name</th>
+                <th class="px-5 py-3.5">Track Eligibility Status</th>
+                <th class="px-5 py-3.5">Latest Outcome</th>
+                <th class="px-5 py-3.5 text-right">Integrity Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-students-table-body" class="divide-y divide-slate-100">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- ================= MODAL: BOOKING CONFIRMATION (STUDENT) ================= -->
+  <div id="booking-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 transition-all">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden transition-all">
+      <div class="p-6 border-b border-slate-100 pb-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center font-bold text-xs">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-semibold text-slate-900 tracking-tight">Confirm Badge Interview</h3>
+              <p class="text-xs text-slate-500">Hold locked • Complete booking</p>
+            </div>
+          </div>
+          <button onclick="cancelHoldAndCloseModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="mt-4 bg-amber-50 border border-amber-200/80 text-amber-900 rounded-lg p-2.5 text-xs flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+            <span class="font-medium">Slot Hold Active</span>
+          </div>
+          <span class="font-mono font-semibold" id="modal-hold-timer">05:00</span>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200/70 space-y-3 text-xs">
+          <div class="flex justify-between items-center py-1 border-b border-slate-200/50">
+            <span class="text-slate-500">Track Credential</span>
+            <span class="font-semibold text-slate-900" id="modal-track-name">AI Engineering Track</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-slate-200/50">
+            <span class="text-slate-500">Candidate</span>
+            <span class="font-medium text-slate-900" id="modal-student-name">Alex Rivera</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-slate-200/50">
+            <span class="text-slate-500">Interviewer</span>
+            <span class="font-medium text-slate-900" id="modal-interviewer-name">Dr. Marcus Rivera</span>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-slate-200/50">
+            <span class="text-slate-500">Date & Start Time</span>
+            <span class="font-semibold text-slate-900" id="modal-slot-time">Tomorrow, 09:00 AM</span>
+          </div>
+          <div class="flex justify-between items-center py-1">
+            <span class="text-slate-500">Meeting Format</span>
+            <span class="text-slate-700">45 Min Video Call (Google Meet)</span>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-slate-500 leading-relaxed bg-white rounded-lg border border-slate-200/60 p-3">
+          <strong class="text-slate-700">Evaluation Notice:</strong> Confirming this booking will reserve the slot, set your track badge status to <span class="font-semibold text-blue-700">Scheduled</span>, and dispatch a Google Calendar invitation to your email.
+        </div>
+      </div>
+
+      <div class="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-3">
+        <button onclick="cancelHoldAndCloseModal()" class="px-4 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-200 transition-colors">
+          Cancel & Release Hold
+        </button>
+        <button id="confirm-booking-btn" onclick="confirmBooking()" class="px-4 py-2 rounded-lg text-xs font-medium bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-sm flex items-center space-x-1.5">
+          <i data-lucide="check" class="w-3.5 h-3.5"></i>
+          <span>Confirm Booking</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: EVALUATION (INTERVIEWER) ================= -->
+  <div id="evaluation-modal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 transition-all">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full overflow-hidden transition-all">
+      <div class="p-6 border-b border-slate-100 pb-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs">
+              <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-semibold text-slate-900 tracking-tight">Submit Candidate Evaluation</h3>
+              <p class="text-xs text-slate-500">Record outcome and provide technical feedback</p>
+            </div>
+          </div>
+          <button onclick="closeEvaluationModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <form id="evaluation-form" onsubmit="onEvaluationSubmit(event)" class="p-6 space-y-5 text-xs">
+        <input type="hidden" id="eval-booking-id">
+
+        <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500">Candidate</span>
+            <span class="font-semibold text-slate-900" id="eval-candidate-name">Alex Rivera</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500">Track Credential</span>
+            <span class="font-medium text-slate-800" id="eval-track-name">AI Engineering Track</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500">Interview Slot</span>
+            <span class="font-medium text-slate-800" id="eval-slot-time">Tomorrow, 09:00 AM</span>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block font-medium text-slate-800">
+            Outcome Decision <span class="text-rose-500">*</span>
+          </label>
+          <select id="eval-outcome-select" required onchange="onOutcomeChange(this.value)" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 font-medium shadow-sm">
+            <option value="" disabled selected>Select Evaluation Outcome...</option>
+            <option value="Pass">Pass (Meets badge standards)</option>
+            <option value="Fail">Fail (Does not meet standards)</option>
+            <option value="Retake">Retake (Minor remediation needed)</option>
+          </select>
+
+          <div id="outcome-impact-note" class="p-3 rounded-lg border text-[11px] leading-relaxed transition-all hidden"></div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="eval-feedback-input" class="block font-medium text-slate-800">
+            Evaluation Feedback & Assessment Notes <span class="text-slate-400 font-normal">(Shared with candidate)</span>
+          </label>
+          <textarea 
+            id="eval-feedback-input" 
+            rows="4" 
+            placeholder="Document candidate's architectural reasoning, code implementation speed, failure recovery, and badge rubric score..."
+            class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 shadow-sm leading-relaxed"
+          ></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end space-x-3 border-t border-slate-100">
+          <button type="button" onclick="closeEvaluationModal()" class="px-4 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors">
+            Cancel
+          </button>
+          <button type="submit" id="submit-eval-btn" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-medium shadow-sm flex items-center space-x-1.5 transition-all">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>Submit Evaluation</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: BADGE & CERTIFICATE (PROMPT 5 PASSED LINK) ================= -->
+  <div id="certificate-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden p-6 sm:p-8 space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+            <i data-lucide="award" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Verified Credential Badge</h3>
+            <p class="text-xs text-slate-500">GRIT Official Academic Ledger</p>
+          </div>
+        </div>
+        <button onclick="closeCertificateModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Certificate Frame -->
+      <div class="border-4 border-double border-emerald-300 rounded-xl p-6 bg-gradient-to-b from-emerald-50/50 to-white text-center space-y-3">
+        <div class="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto shadow">
+          <i data-lucide="check-check" class="w-6 h-6"></i>
+        </div>
+        <div class="text-xs uppercase tracking-widest text-emerald-700 font-bold">Certificate of Badge Achievement</div>
+        <div class="text-lg font-extrabold text-slate-900" id="cert-student-name">Alex Rivera</div>
+        <p class="text-xs text-slate-600 max-w-sm mx-auto">
+          Has successfully defended their architectural implementation and satisfied all evaluative competencies for the:
+        </p>
+        <div class="inline-block px-3 py-1 bg-emerald-100 text-emerald-900 font-bold text-xs rounded-full border border-emerald-300">
+          GRIT AI Systems Track Badge
+        </div>
+        <div class="pt-4 text-[10px] text-slate-400 font-mono flex justify-between border-t border-slate-100">
+          <span>Verification ID: GRIT-AI-98421</span>
+          <span>Status: Verified & Active</span>
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <button onclick="closeCertificateModal()" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-medium hover:bg-slate-800">
+          Close Window
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: DETAILED NOTES (PROMPT 5 RETAKE LINK) ================= -->
+  <div id="feedback-notes-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden p-6 space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Evaluator Rubric & Feedback Notes</h3>
+            <p class="text-xs text-slate-500">AI Systems Track • Retake Preparation</p>
+          </div>
+        </div>
+        <button onclick="closeFeedbackNotesModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-amber-900">
+          <strong>Review Guidance:</strong> The evaluator noted that while prerequisite work was solid, the technical defense revealed gaps in distributed consensus and rate-limiting failure recovery.
+        </div>
+        <div>
+          <span class="font-semibold text-slate-700 block mb-1">Evaluator Comments:</span>
+          <p id="feedback-modal-text" class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 italic leading-relaxed">
+            "Candidate demonstrated good high-level grasp, but needs revision on core architecture concepts, specifically concurrent request throttling and edge fallbacks. Eligible for retake after 7-day preparation."
+          </p>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-slate-100">
+        <button onclick="closeFeedbackNotesModal()" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-medium hover:bg-slate-800">
+          Acknowledge & Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    // State management
+    let currentRole = 'Student';
+    let currentStudentId = 3;      // Default: Alex Rivera
+    let currentInterviewerId = 2;  // Default: Dr. Marcus Rivera
+    let currentLockedSlotId = null;
+    let holdTimerInterval = null;
+    let holdRemainingSeconds = 300;
+    let cachedDashboardData = null;
+    let cachedInterviewerData = null;
+    let cachedAdminData = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      setQuickSlotTime(10, 0);
+      loadStudentDashboard();
+    });
+
+    // Segmented Role Switcher
+    function switchRole(role) {
+      currentRole = role;
+      
+      const tabStudent = document.getElementById('role-tab-student');
+      const tabInterviewer = document.getElementById('role-tab-interviewer');
+      const tabAdmin = document.getElementById('role-tab-admin');
+      
+      const viewStudent = document.getElementById('student-view');
+      const viewInterviewer = document.getElementById('interviewer-view');
+      const viewAdmin = document.getElementById('admin-view');
+
+      [tabStudent, tabInterviewer, tabAdmin].forEach(tab => {
+        tab.className = "px-3.5 py-1.5 rounded-md transition-all text-slate-500 hover:text-slate-900 flex items-center space-x-1.5";
+      });
+
+      const activeClass = "px-3.5 py-1.5 rounded-md transition-all font-medium flex items-center space-x-1.5 bg-white text-slate-900 shadow-sm border border-slate-200/60";
+
+      if (role === 'Student') {
+        tabStudent.className = activeClass;
+        viewStudent.classList.remove('hidden');
+        viewInterviewer.classList.add('hidden');
+        viewAdmin.classList.add('hidden');
+        loadStudentDashboard();
+      } else if (role === 'Interviewer') {
+        tabInterviewer.className = activeClass;
+        viewStudent.classList.add('hidden');
+        viewInterviewer.classList.remove('hidden');
+        viewAdmin.classList.add('hidden');
+        loadInterviewerDashboard();
+      } else if (role === 'Admin') {
+        tabAdmin.className = activeClass;
+        viewStudent.classList.add('hidden');
+        viewInterviewer.classList.add('hidden');
+        viewAdmin.classList.remove('hidden');
+        loadAdminDashboard();
+      }
+      lucide.createIcons();
+    }
+
+    // Switch active user from dropdown
+    async function onUserSelectChange(userId) {
+      const selectedId = parseInt(userId);
+      const res = await fetch('/api/current-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: selectedId })
+      });
+      const data = await res.json();
+      
+      const initials = data.user.name.split(' ').map(n => n[0]).join('').slice(0, 2);
+      document.getElementById('user-avatar').innerText = initials;
+
+      if (data.user.role === 'Student') {
+        currentStudentId = data.user.id;
+        switchRole('Student');
+      } else if (data.user.role === 'Interviewer') {
+        currentInterviewerId = data.user.id;
+        switchRole('Interviewer');
+      } else if (data.user.role === 'Admin') {
+        switchRole('Admin');
+      }
+    }
+
+    // Format datetime string nicely
+    function formatSlotTime(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr.replace(' ', 'T'));
+        const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+        const timePart = d.toLocaleTimeString([], timeOptions);
+        
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const isTomorrow = d.getDate() === tomorrow.getDate() && d.getMonth() === tomorrow.getMonth();
+
+        return isTomorrow ? `Tomorrow • ${timePart}` : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} • ${timePart}`;
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    function setQuickSlotTime(hours, minutes) {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      d.setHours(hours, minutes, 0, 0);
+
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      
+      const formatted = `${year}-${month}-${day}T${h}:${m}`;
+      const input = document.getElementById('slot-datetime-input');
+      if (input) input.value = formatted;
+    }
+
+    // =========================================================
+    // PROMPT 2 & 5: STUDENT DASHBOARD & DYNAMIC STATES
+    // =========================================================
+    async function loadStudentDashboard() {
+      try {
+        const res = await fetch(`/api/student/${currentStudentId}/dashboard`);
+        if (!res.ok) throw new Error('Failed to load dashboard data');
+        const data = await res.json();
+        cachedDashboardData = data;
+
+        const trackStatus = data.primary_track ? data.primary_track.status : 'Eligible';
+        const hasRetake = data.has_retake || (data.booking && data.booking.outcome === 'Retake');
+
+        // References to dynamic state containers
+        const nullifiedScreen = document.getElementById('nullified-locked-screen');
+        const normalContainer = document.getElementById('student-normal-container');
+        const passedCard = document.getElementById('passed-celebratory-card');
+        const retakeCard = document.getElementById('retake-warning-card');
+        const successBanner = document.getElementById('success-banner');
+        const availableSlotsSection = document.getElementById('available-slots-section');
+        const bookingCard = document.getElementById('existing-booking-card');
+
+        // Populate base student info
+        document.getElementById('student-name-display').innerText = data.student.name;
+        document.getElementById('nullified-student-name').innerText = data.student.name;
+        document.getElementById('cert-student-name').innerText = data.student.name;
+        document.getElementById('calendar-email-dest').innerText = `Invite Sent to ${data.student.email}`;
+        document.getElementById('student-eligibility-status-badge').innerText = trackStatus;
+
+        if (data.booking && data.booking.feedback) {
+          document.getElementById('feedback-modal-text').innerText = `"${data.booking.feedback}"`;
+        }
+        if (data.booking && data.booking.interviewer_name) {
+          document.getElementById('passed-interviewer-name').innerText = data.booking.interviewer_name;
+        }
+
+        // =====================================================
+        // PROMPT 5 DYNAMIC STATE 3: STATUS == 'Nullified'
+        // Overwrite the entire dashboard with a red, locked screen
+        // =====================================================
+        if (trackStatus === 'Nullified') {
+          normalContainer.classList.add('hidden');
+          nullifiedScreen.classList.remove('hidden');
+          lucide.createIcons();
+          return;
+        } else {
+          nullifiedScreen.classList.add('hidden');
+          normalContainer.classList.remove('hidden');
+        }
+
+        // =====================================================
+        // PROMPT 5 DYNAMIC STATE 1: STATUS == 'Passed'
+        // Celebratory card with confetti design and exact message
+        // =====================================================
+        if (trackStatus === 'Passed') {
+          passedCard.classList.remove('hidden');
+          retakeCard.classList.add('hidden');
+          successBanner.classList.add('hidden');
+          availableSlotsSection.classList.add('hidden'); // no need to rebook if passed
+        } 
+        // =====================================================
+        // PROMPT 5 DYNAMIC STATE 2: STATUS == 'Eligible' (after Retake outcome)
+        // Warning card with exact message
+        // =====================================================
+        else if (trackStatus === 'Eligible' && hasRetake) {
+          retakeCard.classList.remove('hidden');
+          passedCard.classList.add('hidden');
+          successBanner.classList.add('hidden');
+          availableSlotsSection.classList.remove('hidden');
+        } 
+        // =====================================================
+        // PROMPT 2 STATE: STATUS == 'Scheduled'
+        // =====================================================
+        else if (trackStatus === 'Scheduled') {
+          successBanner.classList.remove('hidden');
+          passedCard.classList.add('hidden');
+          retakeCard.classList.add('hidden');
+          availableSlotsSection.classList.remove('hidden');
+        } 
+        // Default Eligible state
+        else {
+          passedCard.classList.add('hidden');
+          retakeCard.classList.add('hidden');
+          successBanner.classList.add('hidden');
+          availableSlotsSection.classList.remove('hidden');
+        }
+
+        // Existing booking card setup
+        if (data.booking) {
+          bookingCard.classList.remove('hidden');
+          document.getElementById('booking-time-display').innerText = formatSlotTime(data.booking.start_time);
+          document.getElementById('booking-interviewer-display').innerText = data.booking.interviewer_name;
+          
+          const outcomeContainer = document.getElementById('booking-outcome-container');
+          const outcomeText = document.getElementById('booking-outcome-display');
+          const feedbackPreview = document.getElementById('booking-feedback-preview');
+          const statusBadge = document.getElementById('booking-status-badge');
+
+          outcomeText.innerText = `${data.booking.outcome}`;
+
+          if (data.booking.outcome === 'Pass') {
+            outcomeContainer.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="font-semibold text-emerald-800 text-sm">Passed</span>`;
+            statusBadge.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200";
+            statusBadge.innerText = "Evaluation Passed";
+            feedbackPreview.innerText = data.booking.feedback ? `Feedback: "${data.booking.feedback}"` : "Evaluation passed.";
+          } else if (data.booking.outcome === 'Fail') {
+            outcomeContainer.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span class="font-semibold text-rose-800 text-sm">Failed</span>`;
+            statusBadge.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200";
+            statusBadge.innerText = "Evaluation Failed";
+            feedbackPreview.innerText = data.booking.feedback ? `Feedback: "${data.booking.feedback}"` : "Evaluation failed.";
+          } else if (data.booking.outcome === 'Retake') {
+            outcomeContainer.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span class="font-semibold text-amber-800 text-sm">Retake Recommended</span>`;
+            statusBadge.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200";
+            statusBadge.innerText = "Retake Granted • Re-eligible";
+            feedbackPreview.innerText = data.booking.feedback ? `Feedback: "${data.booking.feedback}"` : "Retake granted.";
+          } else {
+            outcomeContainer.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="font-semibold text-slate-900 text-sm">Pending Evaluation</span>`;
+            statusBadge.className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200";
+            statusBadge.innerText = "Booking Confirmed";
+            feedbackPreview.innerText = "Results posted within 24h of call";
+          }
+        } else {
+          bookingCard.classList.add('hidden');
+        }
+
+        renderSlots(data.available_slots);
+        lucide.createIcons();
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+      }
+    }
+
+    function renderSlots(slots) {
+      const grid = document.getElementById('slots-grid');
+      const countBadge = document.getElementById('slots-count-badge');
+      const emptyState = document.getElementById('no-slots-state');
+      
+      grid.innerHTML = '';
+
+      if (!slots || slots.length === 0) {
+        emptyState.classList.remove('hidden');
+        countBadge.innerText = '0 available';
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      countBadge.innerText = `${slots.length} available`;
+
+      slots.forEach(slot => {
+        const isLocked = slot.status === 'Locked';
+        const isCurrentHold = currentLockedSlotId === slot.id;
+
+        const card = document.createElement('div');
+        card.className = `bg-white rounded-xl border ${isLocked ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200/80 hover:border-slate-300'} p-5 transition-all shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between`;
+
+        const formattedTime = formatSlotTime(slot.start_time);
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-slate-900 tracking-tight flex items-center space-x-1">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>${formattedTime}</span>
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${isLocked ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">
+                ${isLocked ? 'Hold Active' : 'Available'}
+              </span>
+            </div>
+
+            <div class="mt-2 space-y-1">
+              <div class="text-xs font-medium text-slate-800 flex items-center space-x-1.5">
+                <div class="w-5 h-5 rounded-full bg-slate-200 text-[10px] flex items-center justify-center font-bold text-slate-700">
+                  MR
+                </div>
+                <span>${slot.interviewer_name}</span>
+              </div>
+              <p class="text-[11px] text-slate-500 pl-6.5">Staff AI Systems Evaluator</p>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Duration</span>
+              <span class="font-medium text-slate-700">45 Minutes</span>
+            </div>
+            <div class="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Format</span>
+              <span class="font-medium text-slate-700">Google Meet</span>
+            </div>
+          </div>
+
+          <div class="mt-5">
+            ${isLocked && !isCurrentHold ? `
+              <button disabled class="w-full py-2 px-3 rounded-lg text-xs font-medium bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200">
+                Slot on Hold
+              </button>
+            ` : `
+              <button onclick="onSlotClick(${slot.id}, '${slot.start_time}', '${slot.interviewer_name}')" class="w-full py-2 px-3 rounded-lg text-xs font-medium ${isCurrentHold ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} transition-all shadow-sm flex items-center justify-center space-x-1">
+                <span>${isCurrentHold ? 'Resume Hold & Confirm' : 'Book Interview Slot'}</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            `}
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    async function onSlotClick(slotId, startTime, interviewerName) {
+      try {
+        const res = await fetch(`/api/slots/${slotId}/lock`, { method: 'POST' });
+        const result = await res.json();
+        
+        if (!res.ok) {
+          alert(result.error || 'Unable to hold this slot.');
+          loadStudentDashboard();
+          return;
+        }
+
+        currentLockedSlotId = slotId;
+
+        document.getElementById('modal-track-name').innerText = 'AI Engineering Track';
+        document.getElementById('modal-student-name').innerText = cachedDashboardData ? cachedDashboardData.student.name : 'Alex Rivera';
+        document.getElementById('modal-interviewer-name').innerText = interviewerName;
+        document.getElementById('modal-slot-time').innerText = formatSlotTime(startTime);
+
+        startHoldTimer();
+        document.getElementById('booking-modal').classList.remove('hidden');
+        document.getElementById('hold-notification').classList.remove('hidden');
+        loadStudentDashboard();
+      } catch (err) {
+        console.error("Lock error:", err);
+      }
+    }
+
+    function startHoldTimer() {
+      clearInterval(holdTimerInterval);
+      holdRemainingSeconds = 300;
+      updateTimerDisplay();
+
+      holdTimerInterval = setInterval(() => {
+        holdRemainingSeconds--;
+        updateTimerDisplay();
+        if (holdRemainingSeconds <= 0) {
+          clearInterval(holdTimerInterval);
+          cancelHoldAndCloseModal(true);
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const minutes = Math.floor(holdRemainingSeconds / 60);
+      const seconds = holdRemainingSeconds % 60;
+      const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      
+      const modalTimer = document.getElementById('modal-hold-timer');
+      const notifTimer = document.getElementById('hold-timer');
+      if (modalTimer) modalTimer.innerText = formatted;
+      if (notifTimer) notifTimer.innerText = `${formatted} remaining`;
+    }
+
+    async function cancelHoldAndCloseModal(isExpired = false) {
+      clearInterval(holdTimerInterval);
+      if (currentLockedSlotId) {
+        try {
+          await fetch(`/api/slots/${currentLockedSlotId}/unlock`, { method: 'POST' });
+        } catch (e) {
+          console.error("Unlock error:", e);
+        }
+        currentLockedSlotId = null;
+      }
+
+      document.getElementById('booking-modal').classList.add('hidden');
+      document.getElementById('hold-notification').classList.add('hidden');
+      
+      if (isExpired) {
+        alert("Your 5-minute booking hold expired. The slot has been made available again.");
+      }
+
+      loadStudentDashboard();
+    }
+
+    async function confirmBooking() {
+      if (!currentLockedSlotId) return;
+
+      const confirmBtn = document.getElementById('confirm-booking-btn');
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = `
+        <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin mr-1.5"></span>
+        <span>Confirming...</span>
+      `;
+
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slot_id: currentLockedSlotId,
+            student_id: currentStudentId,
+            track_name: 'AI Engineering Track'
+          })
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+          alert(result.error || 'Booking confirmation failed.');
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = `<span>Confirm Booking</span>`;
+          return;
+        }
+
+        clearInterval(holdTimerInterval);
+        currentLockedSlotId = null;
+
+        document.getElementById('booking-modal').classList.add('hidden');
+        document.getElementById('hold-notification').classList.add('hidden');
+
+        const successBanner = document.getElementById('success-banner');
+        const bannerText = document.getElementById('success-banner-text');
+        
+        bannerText.innerText = result.message || "You’re booked! Your AI Engineering Track Interview is confirmed for Thursday, Nov 14 at 4:30 PM IST. A calendar invitation with your meeting link has been sent to your email. Please join 5 minutes early with your camera and workspace ready.";
+        
+        successBanner.classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        await loadStudentDashboard();
+
+      } catch (err) {
+        console.error("Booking error:", err);
+        alert("An error occurred while confirming booking.");
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = `
+          <i data-lucide="check" class="w-3.5 h-3.5"></i>
+          <span>Confirm Booking</span>
+        `;
+        lucide.createIcons();
+      }
+    }
+
+    function dismissSuccessBanner() {
+      document.getElementById('success-banner').classList.add('hidden');
+    }
+
+    function openCertificateModal() {
+      document.getElementById('certificate-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeCertificateModal() {
+      document.getElementById('certificate-modal').classList.add('hidden');
+    }
+
+    function openFeedbackNotesModal() {
+      document.getElementById('feedback-notes-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeFeedbackNotesModal() {
+      document.getElementById('feedback-notes-modal').classList.add('hidden');
+    }
+
+    // =========================================================
+    // PROMPT 3: INTERVIEWER VIEW LOGIC
+    // =========================================================
+    async function loadInterviewerDashboard() {
+      try {
+        const res = await fetch(`/api/interviewer/${currentInterviewerId}/dashboard`);
+        if (!res.ok) throw new Error('Failed to load interviewer dashboard');
+        const data = await res.json();
+        cachedInterviewerData = data;
+
+        document.getElementById('interviewer-name-display').innerText = data.interviewer.name;
+        document.getElementById('stat-available-slots').innerText = data.stats.available_slots;
+        document.getElementById('stat-pending-queue').innerText = data.stats.pending_evaluations;
+        document.getElementById('stat-completed-evals').innerText = data.stats.completed_evaluations;
+
+        renderInterviewerSlots(data.slots);
+        renderDailyQueue(data.queue);
+        lucide.createIcons();
+      } catch (err) {
+        console.error("Interviewer dashboard error:", err);
+      }
+    }
+
+    function renderInterviewerSlots(slots) {
+      const container = document.getElementById('interviewer-slots-list');
+      const countLabel = document.getElementById('interviewer-slots-count');
+      container.innerHTML = '';
+
+      if (!slots || slots.length === 0) {
+        countLabel.innerText = '0 slots published';
+        container.innerHTML = `
+          <div class="col-span-full py-6 text-center text-xs text-slate-400 bg-slate-50 rounded-lg border border-slate-200">
+            No availability slots published yet. Use the form above to add slots.
+          </div>
+        `;
+        return;
+      }
+
+      countLabel.innerText = `${slots.length} slot${slots.length === 1 ? '' : 's'} published`;
+
+      slots.forEach(slot => {
+        const card = document.createElement('div');
+        const isBooked = slot.status === 'Booked';
+        const isLocked = slot.status === 'Locked';
+        
+        let statusBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+        if (isBooked) statusBadgeClass = "bg-blue-50 text-blue-700 border-blue-200";
+        if (isLocked) statusBadgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+
+        card.className = "bg-slate-50 border border-slate-200/80 rounded-lg p-3 text-xs flex flex-col justify-between";
+        card.innerHTML = `
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusBadgeClass}">
+                ${slot.status}
+              </span>
+              ${slot.status === 'Available' ? `
+                <button onclick="onDeleteSlot(${slot.id})" title="Delete slot" class="text-slate-400 hover:text-rose-600 transition-colors p-0.5">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              ` : ''}
+            </div>
+            <div class="font-semibold text-slate-900 text-xs">
+              ${formatSlotTime(slot.start_time)}
+            </div>
+            ${isBooked && slot.student_name ? `
+              <div class="text-[11px] text-blue-700 flex items-center space-x-1">
+                <i data-lucide="user" class="w-3 h-3"></i>
+                <span>${slot.student_name}</span>
+              </div>
+            ` : `
+              <div class="text-[11px] text-slate-400">Open for students</div>
+            `}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    async function onAddSlotSubmit(event) {
+      event.preventDefault();
+      const input = document.getElementById('slot-datetime-input');
+      const submitBtn = document.getElementById('add-slot-btn');
+      
+      const rawVal = input.value;
+      if (!rawVal) return;
+
+      const formattedVal = rawVal.replace('T', ' ') + ':00';
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        <span>Adding...</span>
+      `;
+
+      try {
+        const res = await fetch('/api/slots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            interviewer_id: currentInterviewerId,
+            start_time: formattedVal
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Failed to add slot');
+          return;
+        }
+
+        await loadInterviewerDashboard();
+      } catch (err) {
+        console.error("Add slot error:", err);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Add Slot</span>
+        `;
+        lucide.createIcons();
+      }
+    }
+
+    async function onDeleteSlot(slotId) {
+      if (!confirm("Are you sure you want to remove this open slot?")) return;
+      try {
+        const res = await fetch(`/api/slots/${slotId}?interviewer_id=${currentInterviewerId}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Could not delete slot');
+          return;
+        }
+        await loadInterviewerDashboard();
+      } catch (err) {
+        console.error("Delete slot error:", err);
+      }
+    }
+
+    function renderDailyQueue(queue) {
+      const container = document.getElementById('queue-container');
+      const emptyState = document.getElementById('empty-queue-state');
+      container.innerHTML = '';
+
+      if (!queue || queue.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      queue.forEach(item => {
+        const row = document.createElement('div');
+        const isPending = item.outcome === 'Pending';
+        
+        let outcomeBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">Pending Evaluation</span>`;
+        if (item.outcome === 'Pass') {
+          outcomeBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"><i data-lucide="check" class="w-3 h-3 mr-1 text-emerald-600"></i> Passed</span>`;
+        } else if (item.outcome === 'Fail') {
+          outcomeBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-800 border border-rose-200"><i data-lucide="x" class="w-3 h-3 mr-1 text-rose-600"></i> Failed</span>`;
+        } else if (item.outcome === 'Retake') {
+          outcomeBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200"><i data-lucide="rotate-ccw" class="w-3 h-3 mr-1 text-amber-600"></i> Retake (Eligible)</span>`;
+        }
+
+        row.className = "bg-slate-50 hover:bg-slate-50/80 rounded-xl border border-slate-200/80 p-4 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4";
+        row.innerHTML = `
+          <div class="flex items-start space-x-3.5">
+            <div class="w-9 h-9 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold border border-slate-300">
+              ${item.student_name.split(' ').map(n => n[0]).join('')}
+            </div>
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <h4 class="font-semibold text-slate-900 text-sm">${item.student_name}</h4>
+                <span class="text-xs text-slate-400">•</span>
+                <span class="text-xs text-slate-500 font-mono">${item.student_email}</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span class="font-medium text-slate-700">${item.track_name || 'AI Engineering Track'}</span>
+                <span>•</span>
+                <span class="flex items-center space-x-1">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span>${formatSlotTime(item.start_time)}</span>
+                </span>
+              </div>
+              ${item.feedback ? `
+                <p class="text-xs text-slate-600 italic bg-white p-2 rounded-lg border border-slate-200/60 mt-1 max-w-xl">
+                  "${item.feedback}"
+                </p>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-3 self-end md:self-center">
+            ${outcomeBadge}
+            <button onclick="openEvaluationModal(${item.booking_id}, '${item.student_name}', '${item.track_name || 'AI Engineering Track'}', '${item.start_time}', '${item.outcome}', \`${item.feedback || ''}\`)" class="px-3.5 py-1.5 rounded-lg text-xs font-medium ${isPending ? 'bg-slate-900 hover:bg-slate-800 text-white' : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'} transition-all shadow-sm flex items-center space-x-1.5">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              <span>${isPending ? 'Submit Evaluation' : 'Update Evaluation'}</span>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(row);
+      });
+
+      lucide.createIcons();
+    }
+
+    function openEvaluationModal(bookingId, studentName, trackName, startTime, currentOutcome, currentFeedback) {
+      document.getElementById('eval-booking-id').value = bookingId;
+      document.getElementById('eval-candidate-name').innerText = studentName;
+      document.getElementById('eval-track-name').innerText = trackName;
+      document.getElementById('eval-slot-time').innerText = formatSlotTime(startTime);
+      
+      const select = document.getElementById('eval-outcome-select');
+      select.value = (currentOutcome && currentOutcome !== 'Pending') ? currentOutcome : '';
+      onOutcomeChange(select.value);
+
+      document.getElementById('eval-feedback-input').value = currentFeedback || '';
+      document.getElementById('evaluation-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeEvaluationModal() {
+      document.getElementById('evaluation-modal').classList.add('hidden');
+    }
+
+    function onOutcomeChange(outcome) {
+      const banner = document.getElementById('outcome-impact-note');
+      if (!outcome) {
+        banner.className = "hidden";
+        return;
+      }
+
+      banner.classList.remove('hidden');
+      if (outcome === 'Pass') {
+        banner.className = "p-3 rounded-lg border text-[11px] leading-relaxed bg-emerald-50 border-emerald-200 text-emerald-900";
+        banner.innerHTML = `<strong>Pass Impact:</strong> Sets outcome to <em>Pass</em>. Crucially updates student's Track_Eligibility status to <strong class="text-emerald-700">Passed</strong> and unlocks verified badge.`;
+      } else if (outcome === 'Fail') {
+        banner.className = "p-3 rounded-lg border text-[11px] leading-relaxed bg-rose-50 border-rose-200 text-rose-900";
+        banner.innerHTML = `<strong>Fail Impact:</strong> Sets outcome to <em>Fail</em>. Crucially updates student's Track_Eligibility status to <strong class="text-rose-700">Failed</strong>.`;
+      } else if (outcome === 'Retake') {
+        banner.className = "p-3 rounded-lg border text-[11px] leading-relaxed bg-amber-50 border-amber-200 text-amber-900";
+        banner.innerHTML = `<strong>Retake Impact:</strong> Sets outcome to <em>Retake</em>. Crucially resets student's Track_Eligibility status back to <strong class="text-amber-700">Eligible</strong>, allowing a retake after preparation.`;
+      }
+    }
+
+    async function onEvaluationSubmit(event) {
+      event.preventDefault();
+      const bookingId = document.getElementById('eval-booking-id').value;
+      const outcome = document.getElementById('eval-outcome-select').value;
+      const feedback = document.getElementById('eval-feedback-input').value;
+      const submitBtn = document.getElementById('submit-eval-btn');
+
+      if (!bookingId || !outcome) {
+        alert("Please select an outcome decision.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin mr-1.5"></span>
+        <span>Saving...</span>
+      `;
+
+      try {
+        const res = await fetch(`/api/bookings/${bookingId}/evaluation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ outcome, feedback })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Failed to submit evaluation');
+          return;
+        }
+
+        closeEvaluationModal();
+        await loadInterviewerDashboard();
+        alert(`✓ Evaluation Submitted!\n${data.message}`);
+      } catch (err) {
+        console.error("Evaluation submit error:", err);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+          <span>Submit Evaluation</span>
+        `;
+        lucide.createIcons();
+      }
+    }
+
+    async function simulateQuickBooking() {
+      try {
+        const slotsRes = await fetch('/api/slots?status=Available');
+        const slotsData = await slotsRes.json();
+        if (!slotsData.slots || slotsData.slots.length === 0) {
+          alert("No available slots to book. Please add a slot first in Section 1.");
+          return;
+        }
+
+        const slotId = slotsData.slots[0].id;
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slot_id: slotId,
+            student_id: 3, // Alex Rivera
+            track_name: 'AI Engineering Track'
+          })
+        });
+
+        if (res.ok) {
+          await loadInterviewerDashboard();
+        } else {
+          const err = await res.json();
+          alert(err.error || "Simulation failed");
+        }
+      } catch (e) {
+        console.error("Simulate error:", e);
+      }
+    }
+
+    // =========================================================
+    // PROMPT 4: ADMIN DASHBOARD & MALPRACTICE HANDLING
+    // =========================================================
+    async function loadAdminDashboard() {
+      try {
+        const res = await fetch('/api/admin/dashboard');
+        if (!res.ok) throw new Error('Failed to load admin dashboard');
+        const data = await res.json();
+        cachedAdminData = data;
+
+        // Metrics at top: Total Eligible (Unbooked) vs Total Scheduled
+        document.getElementById('metric-total-eligible').innerText = data.metrics.total_eligible_unbooked;
+        document.getElementById('metric-total-scheduled').innerText = data.metrics.total_scheduled;
+        document.getElementById('metric-total-passed').innerText = data.metrics.total_passed;
+        document.getElementById('metric-total-nullified').innerText = data.metrics.total_nullified;
+
+        // Render Data Table
+        renderAdminStudentsTable(data.students);
+        lucide.createIcons();
+      } catch (err) {
+        console.error("Admin dashboard error:", err);
+      }
+    }
+
+    function renderAdminStudentsTable(students) {
+      const tbody = document.getElementById('admin-students-table-body');
+      tbody.innerHTML = '';
+
+      if (!students || students.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-5 py-8 text-center text-xs text-slate-400">
+              No students found in cohort registry.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      students.forEach(student => {
+        const tr = document.createElement('tr');
+        const isNullified = student.status === 'Nullified';
+        const isScheduled = student.status === 'Scheduled';
+        const isPassed = student.status === 'Passed';
+        const isFailed = student.status === 'Failed';
+        const isEligible = student.status === 'Eligible';
+
+        let statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">Eligible (Unbooked)</span>`;
+        if (isScheduled) {
+          statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-800 border border-blue-200"><i data-lucide="clock" class="w-3 h-3 mr-1 text-blue-600"></i> Scheduled</span>`;
+        } else if (isPassed) {
+          statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"><i data-lucide="check" class="w-3 h-3 mr-1 text-emerald-600"></i> Passed</span>`;
+        } else if (isFailed) {
+          statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-800 border border-rose-200"><i data-lucide="x" class="w-3 h-3 mr-1 text-rose-600"></i> Failed</span>`;
+        } else if (isNullified) {
+          statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-900 border border-rose-300"><i data-lucide="shield-alert" class="w-3 h-3 mr-1 text-rose-700"></i> Nullified</span>`;
+        }
+
+        let outcomeText = `<span class="text-slate-400 italic">No interview yet</span>`;
+        if (student.booking_outcome) {
+          outcomeText = `<span class="font-medium text-slate-800">${student.booking_outcome}</span>`;
+          if (student.slot_time) {
+            outcomeText += ` <span class="text-[10px] text-slate-400 block">${formatSlotTime(student.slot_time)}</span>`;
+          }
+        }
+
+        tr.className = `${isNullified ? 'bg-rose-50/60' : 'hover:bg-slate-50/60'} transition-colors`;
+        tr.innerHTML = `
+          <!-- Student Info -->
+          <td class="px-5 py-4">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-full ${isNullified ? 'bg-rose-200 text-rose-800' : 'bg-slate-200 text-slate-700'} flex items-center justify-center font-bold text-xs">
+                ${student.name.split(' ').map(n => n[0]).join('')}
+              </div>
+              <div>
+                <div class="font-semibold text-slate-900 text-xs">${student.name}</div>
+                <div class="text-[11px] text-slate-500 font-mono">${student.email}</div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Track Name -->
+          <td class="px-5 py-4 font-medium text-slate-700 text-xs">
+            ${student.track_name}
+          </td>
+
+          <!-- Eligibility Status -->
+          <td class="px-5 py-4">
+            ${statusBadge}
+          </td>
+
+          <!-- Latest Outcome -->
+          <td class="px-5 py-4 text-xs">
+            ${outcomeText}
+          </td>
+
+          <!-- Action: Highly Visible Flag Malpractice Button -->
+          <td class="px-5 py-4 text-right">
+            ${isNullified ? `
+              <div class="inline-flex items-center space-x-2">
+                <span class="inline-flex items-center text-[11px] font-semibold text-rose-700 space-x-1">
+                  <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                  <span>Flagged</span>
+                </span>
+                <button onclick="restoreStudent(${student.student_id})" title="Restore student eligibility" class="text-xs text-slate-500 hover:text-slate-900 px-2 py-1 rounded bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
+                  Restore
+                </button>
+              </div>
+            ` : `
+              <button 
+                onclick="onFlagMalpracticeClick(${student.student_id}, '${student.name}')" 
+                class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-200 hover:border-rose-300 rounded-lg text-xs font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-rose-500"
+                title="Flag academic integrity violation"
+              >
+                <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-rose-600"></i>
+                <span>Flag Malpractice</span>
+              </button>
+            `}
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Flag Malpractice Action Handler
+    async function onFlagMalpracticeClick(studentId, studentName) {
+      const confirmed = confirm(
+        `ARE YOU SURE?\n\nFlag academic malpractice for ${studentName}?\n\nThis will immediately update their Track_Eligibility status to 'Nullified' and revoke all badge credentials.`
+      );
+      if (!confirmed) return;
+
+      try {
+        const res = await fetch('/api/admin/flag-malpractice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: studentId })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Failed to flag malpractice');
+          return;
+        }
+
+        // Reload admin table & metrics
+        await loadAdminDashboard();
+        alert(`✓ ${data.message}`);
+      } catch (err) {
+        console.error("Flag malpractice error:", err);
+      }
+    }
+
+    // Restore student eligibility
+    async function restoreStudent(studentId) {
+      if (!confirm("Restore this student's status back to 'Eligible'?")) return;
+      try {
+        const res = await fetch('/api/admin/restore-student', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: studentId })
+        });
+        if (res.ok) {
+          await loadAdminDashboard();
+        }
+      } catch (err) {
+        console.error("Restore error:", err);
+      }
+    }
+
+    // Reset Data Helper
+    async function resetData() {
+      if (!confirm("Reset database to initial test data?")) return;
+      await fetch('/api/reset-data', { method: 'POST' });
+      currentLockedSlotId = null;
+      clearInterval(holdTimerInterval);
+      document.getElementById('booking-modal').classList.add('hidden');
+      document.getElementById('hold-notification').classList.add('hidden');
+      document.getElementById('success-banner').classList.add('hidden');
+      document.getElementById('evaluation-modal').classList.add('hidden');
+      document.getElementById('certificate-modal').classList.add('hidden');
+      document.getElementById('feedback-notes-modal').classList.add('hidden');
+      
+      if (currentRole === 'Student') {
+        await loadStudentDashboard();
+      } else if (currentRole === 'Interviewer') {
+        await loadInterviewerDashboard();
+      } else if (currentRole === 'Admin') {
+        await loadAdminDashboard();
+      }
+    }
+  </script>
+</body>
+</html>
