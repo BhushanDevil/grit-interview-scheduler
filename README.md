@@ -6,46 +6,33 @@ Built with clean, modern **Notion / Linear** design principles, Tailwind CSS con
 
 ---
 
-## 🌟 Live Free Hosting Options
+## 🚀 Live Cloud Deployment on Render
 
-You can host and share this application online for **100% free** so anyone in the world can access it:
+The project is hosted live on **Render** (Production WSGI with Gunicorn):
 
-### Option A: Streamlit Community Cloud (Recommended — 1-Click Free Hosting)
-1. Push this repository to your **GitHub** account:
+* **Live Deployment Platform:** [Render.com](https://render.com)
+* **Application Architecture:** Flask 3.0.3 + Gunicorn 22.0.0
+* **Build Command:** `pip install -r requirements.txt && python3 seed.py`
+* **Start Command:** `gunicorn app:app`
+* **Configuration:** Defined in [`render.yaml`](file:///Users/bhushan/Documents/GRIP%20NXT%20Assignmnet/render.yaml) and [`Procfile`](file:///Users/bhushan/Documents/GRIP%20NXT%20Assignmnet/Procfile)
+
+### How to Deploy to Render from GitHub
+1. Push this repository to your GitHub account:
    ```bash
    git init
    git add .
-   git commit -m "Initial commit: GRIT Interview Scheduler"
+   git commit -m "feat: live Render deployment for GRIT Interview Scheduler"
    git branch -M main
-   git remote add origin https://github.com/<your-username>/<your-repo-name>.git
+   git remote add origin https://github.com/<your-username>/grit-interview-scheduler.git
    git push -u origin main
    ```
-2. Go to **[share.streamlit.io](https://share.streamlit.io)** and log in with GitHub.
-3. Click **"New app"** and configure:
-   - **Repository:** `<your-username>/<your-repo-name>`
-   - **Branch:** `main`
-   - **Main file path:** `streamlit_app.py`
-4. Click **"Deploy!"** — Your app will be live with a public URL in under 2 minutes!
-
----
-
-### Option B: Render.com (Free Web Service for Flask App)
-1. Push your repository to GitHub.
-2. Sign up on **[render.com](https://render.com)** (Free Tier).
-3. Click **"New +"** → **"Web Service"** → Connect your GitHub repository.
-4. Render will automatically detect [`render.yaml`](file:///Users/bhushan/Documents/GRIP%20NXT%20Assignmnet/render.yaml) or you can set:
+2. Log in to [render.com](https://render.com).
+3. Click **"New +"** → **"Web Service"** and connect your GitHub repository.
+4. Render automatically detects [`render.yaml`](file:///Users/bhushan/Documents/GRIP%20NXT%20Assignmnet/render.yaml) and sets:
    - **Environment:** `Python 3`
    - **Build Command:** `pip install -r requirements.txt && python3 seed.py`
    - **Start Command:** `gunicorn app:app`
-5. Click **"Create Web Service"**. Your app will be live at `https://<your-app>.onrender.com`.
-
----
-
-### Option C: Vercel (Free Serverless Python)
-1. Push your repository to GitHub.
-2. Go to **[vercel.com](https://vercel.com)** and click **"Add New Project"**.
-3. Import the repository (configured via [`vercel.json`](file:///Users/bhushan/Documents/GRIP%20NXT%20Assignmnet/vercel.json)).
-4. Click **"Deploy"**.
+5. Click **"Create Web Service"**. Your application is live and accessible online.
 
 ---
 
@@ -89,7 +76,7 @@ The application provides three role-based views accessible via the top navigatio
   * **Total Eligible (Unbooked)** vs **Total Scheduled**.
   * Badges Issued (`Passed`) and Academic Malpractice Flags (`Nullified`).
 * **Student Cohort Registry:**
-  * Complete data table listing all students, their tracks, and eligibility status.
+  * Complete data table listing all students, their tracks, and eligibility status (shows which eligible students have booked and which haven't).
 * **Flag Malpractice Action:**
   * Highly visible red button on each student row.
   * Sets that student's `Track_Eligibility.status` to **`Nullified`** and revokes credentials.
@@ -145,13 +132,9 @@ erDiagram
 
 ## 💻 Local Quickstart
 
-### Prerequisites
-* Python 3.10+ installed
-* SQLite 3 (standard in Python)
-
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/<your-username>/<your-repo-name>.git
+git clone https://github.com/<your-username>/grit-interview-scheduler.git
 cd "GRIP NXT Assignmnet"
 pip install -r requirements.txt
 ```
@@ -162,38 +145,15 @@ python seed.py
 ```
 
 ### 3. Run Web Application
-* **Option 1 (Full Flask Web App with Tailwind CSS & Custom Modals):**
-  ```bash
-  python app.py
-  # Open http://127.0.0.1:5001
-  ```
-* **Option 2 (Streamlit App):**
-  ```bash
-  streamlit run streamlit_app.py
-  # Open http://localhost:8501
-  ```
+```bash
+python app.py
+# Open http://127.0.0.1:5001
+```
 
 ---
 
 ## 🧪 Automated Test Suite (23/23 Tests Passing)
 
-Run all unit and integration test suites:
-
-```bash
-# 1. Database schema, constraints, cascades & enums (9 tests)
-python test_db.py
-
-# 2. Student dashboard, hold locking, booking transaction & success banner (4 tests)
-python test_booking_flow.py
-
-# 3. Interviewer availability, daily queue & crucial status transitions (5 tests)
-python test_interviewer_outcomes.py
-
-# 4. Admin metrics, malpractice flagging & dynamic after-result states (5 tests)
-python test_admin_and_dynamic_states.py
-```
-
-Or run all in one command:
 ```bash
 python test_db.py && python test_booking_flow.py && python test_interviewer_outcomes.py && python test_admin_and_dynamic_states.py
 ```
@@ -205,12 +165,11 @@ python test_db.py && python test_booking_flow.py && python test_interviewer_outc
 ```
 .
 ├── .gitignore                      # Git ignore rules for virtual environments, OS files & caches
-├── Procfile                        # Production WSGI process definition (Render / Heroku)
-├── README.md                       # Comprehensive documentation & deployment guide
+├── Procfile                        # Production WSGI process definition (Render)
+├── README.md                       # Comprehensive documentation & Render guide
 ├── render.yaml                     # Render.com Infrastructure-as-Code configuration
-├── vercel.json                     # Vercel serverless deployment configuration
 ├── runtime.txt                     # Target Python version pin
-├── requirements.txt                # Production dependencies (Flask, Gunicorn, Streamlit)
+├── requirements.txt                # Production dependencies (Flask, Gunicorn)
 ├── schema.sql                      # ANSI SQL DDL schema with check constraints & foreign keys
 ├── seed.sql                        # Dynamic SQL seed script for test data
 ├── grit_scheduler.db               # SQLite relational database
@@ -219,7 +178,6 @@ python test_db.py && python test_booking_flow.py && python test_interviewer_outc
 ├── types.ts                        # TypeScript interface definitions
 ├── seed.py                         # CLI database reset & summary script
 ├── app.py                          # Flask web application & REST API
-├── streamlit_app.py                # 1-Click Streamlit Community Cloud application
 ├── templates/
 │   └── index.html                  # Responsive Tailwind UI (Linear / Notion aesthetic)
 ├── test_db.py                      # Prompt 1 schema test suite
@@ -227,8 +185,3 @@ python test_db.py && python test_booking_flow.py && python test_interviewer_outc
 ├── test_interviewer_outcomes.py    # Prompt 3 interviewer outcome test suite
 └── test_admin_and_dynamic_states.py# Prompt 4 & 5 admin & dynamic states test suite
 ```
-
----
-
-## 🛡️ License & Academic Integrity
-Built for educational credential verification and track badge defense evaluation under the GRIT Academic Framework.
